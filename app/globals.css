@@ -2,50 +2,334 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 引入字体 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+/* ========================================
+   设计系统 - The Humanist Archive
+   专业感 × 人文共情 × 现代简约
+   ======================================== */
+
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 5, 5, 5;
-  --background-end-rgb: 15, 15, 18;
+  /* 背景色 */
+  --bg-primary: #FAFAF8;
+  --bg-secondary: #F5F3F0;
+  --bg-tertiary: #EFECEA;
+  --bg-card: #FFFFFF;
+
+  /* 品牌色 */
+  --brand: #6B5B4D;
+  --brand-light: #8B7355;
+  --brand-dark: #4A3F35;
+
+  /* 强调色 */
+  --accent: #B8956B;
+  --accent-light: #D4B896;
+
+  /* 文字色 */
+  --text-primary: #1A1A1A;
+  --text-secondary: #4A4A4A;
+  --text-tertiary: #6B6B6B;
+  --text-muted: #9CA3AF;
+
+  /* 边框色 */
+  --border: #E5E2DE;
+  --border-light: #F0EDEA;
+
+  /* 领域色 - 柔和专业色彩（降低饱和度） */
+  --domain-executing: #A78BFA;    /* 执行力 - 柔和紫 */
+  --domain-influencing: #FBBF24;  /* 影响力 - 柔和橙 */
+  --domain-relationship: #60A5FA; /* 关系建立 - 柔和蓝 */
+  --domain-strategic: #34D399;    /* 战略思维 - 柔和绿 */
+}
+
+/* ========================================
+   基础样式
+   ======================================== */
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      135deg,
-      rgb(var(--background-start-rgb)),
-      rgb(var(--background-end-rgb))
-    );
-  min-height: 100vh;
+  font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-secondary);
+  background-color: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.7;
 }
+
+/* 标题使用衬线字体 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Noto Serif SC', Georgia, serif;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ========================================
+   组件样式
+   ======================================== */
 
 @layer components {
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl;
-  }
-  
-  .cyber-button {
-    @apply relative overflow-hidden px-8 py-4 bg-cyber-emerald text-white font-bold rounded-lg 
-           transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)]
-           hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
-  }
-
-  .cyber-label {
-    @apply text-xs font-mono tracking-widest uppercase text-cyber-emerald/70 font-semibold;
+  /* 主按钮 - 手册章节入口风格 */
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center px-10 py-4
+           bg-[#8B7355] text-white font-sans font-medium text-lg
+           rounded-lg shadow-soft border border-[#7A6548]
+           transition-all duration-300 ease-smooth
+           hover:bg-[#7A6548] hover:shadow-md hover:-translate-y-0.5
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
 
+  /* 次要按钮 */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3
+           bg-bg-card text-text-secondary font-sans font-medium text-base
+           rounded-xl border border-border transition-all duration-300 ease-smooth
+           hover:border-border-dark hover:bg-bg-secondary hover:shadow-soft
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* 幽灵按钮 */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2
+           bg-transparent text-text-tertiary font-sans font-medium text-sm
+           rounded-lg transition-all duration-200
+           hover:bg-bg-secondary hover:text-text-secondary
+           active:scale-[0.98];
+  }
+
+  /* 卡片 - 简洁优雅 */
+  .card {
+    @apply bg-bg-card rounded-2xl border border-border-light
+           shadow-card transition-all duration-300;
+  }
+
+  .card-interactive {
+    @apply card cursor-pointer
+           hover:border-border hover:shadow-elevated hover:-translate-y-0.5;
+  }
+
+  .card-selected {
+    @apply card border-brand shadow-glow bg-brand-subtle;
+  }
+
+  /* 输入框 */
+  .input {
+    @apply w-full px-4 py-3 bg-bg-card text-text-primary
+           border border-border rounded-xl
+           placeholder:text-text-muted
+           transition-all duration-200
+           focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-muted;
+  }
+
+  .textarea {
+    @apply input min-h-[200px] resize-none leading-relaxed;
+  }
+
+  /* 标签 */
+  .badge {
+    @apply inline-flex items-center px-3 py-1.5
+           text-label font-sans uppercase tracking-wider
+           rounded-full border;
+  }
+
+  .badge-brand {
+    @apply badge bg-brand-subtle text-brand border-brand/20;
+  }
+
+  .badge-accent {
+    @apply badge bg-accent-muted text-accent-dark border-accent/20;
+  }
+
+  .badge-muted {
+    @apply badge bg-bg-secondary text-text-tertiary border-border;
+  }
+
+  /* 步骤指示器 */
+  .step-indicator {
+    @apply flex items-center gap-3;
+  }
+
+  .step-dot {
+    @apply w-2 h-2 rounded-full transition-all duration-300;
+  }
+
+  .step-dot-active {
+    @apply step-dot bg-brand w-8;
+  }
+
+  .step-dot-inactive {
+    @apply step-dot bg-border;
+  }
+
+  .step-dot-completed {
+    @apply step-dot bg-brand;
+  }
+
+  /* 返回按钮 */
+  .back-button {
+    @apply inline-flex items-center gap-2 text-text-tertiary
+           font-sans text-sm transition-colors duration-200
+           hover:text-text-primary;
+  }
+
+  .back-button svg {
+    @apply w-4 h-4 transition-transform duration-200;
+  }
+
+  .back-button:hover svg {
+    @apply -translate-x-1;
+  }
+
+  /* 页面容器 */
+  .page-container {
+    @apply min-h-screen bg-bg-primary px-6 py-12 md:py-20;
+  }
+
+  .page-content {
+    @apply max-w-4xl mx-auto;
+  }
+
+  .page-content-wide {
+    @apply max-w-6xl mx-auto;
+  }
+
+  /* 标题区 */
+  .page-header {
+    @apply text-center mb-12 md:mb-16;
+  }
+
+  .page-title {
+    @apply text-h1 md:text-display font-serif text-text-primary mb-4;
+  }
+
+  .page-subtitle {
+    @apply text-body-lg text-text-tertiary max-w-2xl mx-auto;
+  }
+
+  /* 分割线 */
+  .divider {
+    @apply h-px bg-border my-8;
+  }
+
+  /* 渐变文字 */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-cyber-emerald to-cyber-cyan;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand to-accent;
   }
 }
 
-/* 淡入动画 */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ========================================
+   动画
+   ======================================== */
+
+@layer utilities {
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* ========================================
+   滚动条美化
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ========================================
+   选择文本样式
+   ======================================== */
+
+::selection {
+  background: rgba(107, 91, 77, 0.15);
+  color: var(--text-primary);
+}
+
+/* ========================================
+   Focus 样式
+   ======================================== */
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   打字机光标
+   ======================================== */
+
+.typing-cursor {
+  @apply inline-block w-0.5 h-[1.1em] bg-brand ml-0.5 align-middle;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ========================================
+   加载动画
+   ======================================== */
+
+.loading-dot {
+  @apply w-2 h-2 rounded-full bg-brand;
+  animation: loadingPulse 1.4s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(1) { animation-delay: 0s; }
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loadingPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   进度条
+   ======================================== */
+
+.progress-bar {
+  @apply h-1 bg-border-light rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-brand rounded-full transition-all duration-500 ease-smooth;
 }

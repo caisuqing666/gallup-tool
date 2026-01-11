@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ALL_STRENGTHS } from '@/lib/gallup-strengths';
+import { ALL_STRENGTHS, DOMAIN_NAMES } from '@/lib/gallup-strengths';
 
 interface InputPageProps {
   selectedStrengths: string[];
   confusion: string;
   onConfusionChange: (confusion: string) => void;
   onSubmit: () => void;
+  onBack?: () => void;
 }
 
 const TEMPLATE_TIPS = [
-  '我拥有 [优势 A]，但现在遇到 [具体困境]，导致我 [负面结果]',
-  '比如：我拥有 [责任]，但现在 [项目截止期变动]，导致我 [陷入混乱不敢决策]',
-  '别担心措辞，哪怕是吐槽也可以。比如："我明明很细心（搜集），但现在这些乱七八糟的杂事让我快疯了。"',
+  '我拥有 [优势]，但现在遇到 [具体困境]，导致我 [负面结果]',
+  '比如：我拥有「责任」，但项目截止期变动，导致我陷入混乱不敢决策',
+  '别担心措辞，哪怕是吐槽也可以——真实的表达更容易找到答案',
 ];
 
 export default function InputPage({
@@ -22,87 +23,188 @@ export default function InputPage({
   confusion,
   onConfusionChange,
   onSubmit,
+  onBack,
 }: InputPageProps) {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTipIndex((prev) => (prev + 1) % TEMPLATE_TIPS.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  const canSubmit = confusion.trim().length >= 10;
+  const charCount = confusion.length;
+  const maxChars = 800;
+
+  // 获取已选优势名称
+  const selectedStrengthNames = selectedStrengths
+    .slice(0, 3)
+    .map(id => ALL_STRENGTHS.find(s => s.id === id)?.name)
+    .filter(Boolean)
+    .join('、');
+
+  // 解决 hydration 问题
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="page-container"><div className="page-content" /></div>;
+  }
+
   return (
-    <div className="min-h-screen bg-cyber-black text-white px-4 py-16 relative overflow-hidden">
-      {/* 装饰光晕 */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyber-emerald/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <div className="page-container">
+      <div className="page-content">
+        {/* 返回按钮 */}
+        {onBack && (
+          <motion.button
+            onClick={onBack}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="back-button mb-10"
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>返回</span>
+          </motion.button>
+        )}
 
-      <div className="max-w-3xl mx-auto relative z-10">
         {/* 步骤指示器 */}
-        <div className="mb-12 flex items-center gap-4">
-          <div className="h-1 w-12 bg-cyber-emerald rounded-full"></div>
-          <div className="h-1 w-12 bg-cyber-emerald rounded-full"></div>
-          <div className="h-1 w-12 bg-cyber-emerald rounded-full"></div>
-          <span className="cyber-label ml-2">Phase 03: Input Logic</span>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="step-indicator mb-12"
+        >
+          <div className="step-dot-completed" />
+          <div className="step-dot-completed" />
+          <div className="step-dot-active rounded-full" />
+          <span className="text-sm text-text-muted ml-3">步骤 3 / 3</span>
+        </motion.div>
 
-        <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center">
-          用一句话说清楚，你现在 <span className="text-cyber-emerald">卡在哪</span>？
-        </h2>
+        {/* 标题区 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.6 }}
+          className="text-center mb-10"
+        >
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-text-primary mb-4">
+            用一句话说清楚，你现在<span className="text-gradient">卡在哪</span>？
+          </h1>
+          <p className="text-lg text-text-tertiary">
+            结合你的「{selectedStrengthNames}」优势，描述当前的困惑或挑战
+          </p>
+        </motion.div>
 
-        {/* 动态引导 */}
-        <div className="glass-card bg-cyber-emerald/5 border-cyber-emerald/20 p-4 mb-8 text-center overflow-hidden h-16 flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={currentTipIndex}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-cyber-emerald/80 text-sm font-medium leading-relaxed italic"
-            >
-              💡 {TEMPLATE_TIPS[currentTipIndex]}
-            </motion.p>
-          </AnimatePresence>
-        </div>
+        {/* 提示卡片 - mounted 后才渲染，避免 hydration 不匹配 */}
+        {mounted && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-accent/5 border border-accent/20 rounded-xl p-4 mb-6"
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-accent text-lg flex-shrink-0">💡</span>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={currentTipIndex}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="text-sm text-accent-dark leading-relaxed"
+                >
+                  {TEMPLATE_TIPS[currentTipIndex]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
 
-        {/* 输入框区域 */}
-        <div className="relative group mb-12">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyber-emerald/20 to-cyber-cyan/20 rounded-2xl blur opacity-25 group-focus-within:opacity-100 transition duration-500"></div>
-          <textarea
-            value={confusion}
-            onChange={(e) => onConfusionChange(e.target.value)}
-            placeholder={`比如：我明明很细心（搜集），但现在这些乱七八糟的杂事让我快疯了（结果）`}
-            className="relative w-full min-h-[250px] bg-white/[0.03] border border-white/10 rounded-2xl p-8 text-white text-lg leading-relaxed focus:outline-none focus:border-cyber-emerald/50 transition-all placeholder-gray-600 resize-none shadow-inner"
-          />
+        {/* 输入区域 */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="relative mb-8"
+        >
+          <div className={`
+            relative rounded-2xl transition-all duration-300
+            ${isFocused ? 'ring-2 ring-brand/30' : ''}
+          `}>
+            <textarea
+              value={confusion}
+              onChange={(e) => {
+                const value = e.target.value.slice(0, maxChars);
+                onConfusionChange(value);
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              maxLength={maxChars}
+              placeholder="比如：我明明很有「责任」感，但现在同时负责三个项目，每个都想做好，结果哪个都推进不动，感觉自己被困住了..."
+              className="textarea min-h-[240px] text-base"
+            />
 
-          <div className="absolute bottom-6 right-8 flex items-center gap-4">
-            <span className="text-gray-500 font-mono text-xs uppercase tracking-widest leading-none">
-              {confusion.length} CHARS_BUFFER
-            </span>
-            <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-cyber-emerald"
-                animate={{ width: `${Math.min((confusion.length / 500) * 100, 100)}%` }}
-              />
+            {/* 底部信息栏 */}
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+              <p className="text-xs text-text-muted">
+                建议描述具体场景和感受，便于 AI 精准分析
+              </p>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-medium transition-colors ${
+                  charCount > maxChars * 0.9
+                    ? 'text-status-warning'
+                    : charCount > maxChars * 0.7
+                      ? 'text-text-tertiary'
+                      : 'text-text-muted'
+                }`}>
+                  {charCount}/{maxChars}
+                </span>
+                <div className="w-16 h-1.5 bg-border-light rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full transition-colors ${
+                      charCount > maxChars * 0.9
+                        ? 'bg-status-warning'
+                        : 'bg-brand'
+                    }`}
+                    animate={{ width: `${Math.min((charCount / maxChars) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* 提交区域 */}
-        <div className="text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="text-center"
+        >
           <motion.button
             onClick={onSubmit}
-            disabled={!confusion.trim()}
-            className="cyber-button text-xl px-16 relative overflow-hidden group"
+            disabled={!canSubmit}
+            whileHover={canSubmit ? { scale: 1.02 } : {}}
+            whileTap={canSubmit ? { scale: 0.98 } : {}}
+            className="btn-primary text-lg px-12 py-4 shadow-glow hover:shadow-glow-lg"
           >
-            <span className="relative z-10">开始极速生成方案</span>
-            {/* 按钮内扫描线效果 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent h-full w-full -translate-y-full group-hover:animate-scan"></div>
+            生成专属行动方案
           </motion.button>
-          <p className="mt-6 text-gray-500 text-xs font-mono tracking-widest uppercase">
-            Ready to synchronize with your potential?
+
+          <p className="mt-6 text-sm text-text-muted">
+            {canSubmit
+              ? '点击按钮，AI 将基于你的优势组合生成行动建议'
+              : '请至少输入 10 个字符描述你的困惑'
+            }
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

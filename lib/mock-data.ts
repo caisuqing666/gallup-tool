@@ -2,131 +2,21 @@
 // 核心理念：不补短板，用优势解决问题（反直觉）
 
 import { ResultData } from './types';
-import { ALL_STRENGTHS } from './gallup-strengths';
+import { ALL_STRENGTHS, StrengthId } from './gallup-strengths';
+import { ScenarioId } from './scenarios';
+// 导入规则判断函数（已抽取到 mock-rules.ts 中）
+import {
+  detectStrengthConflicts,
+  detectBasementStrength,
+  isDemoCase,
+  getStrengthDetails,
+  getStrengthNames,
+  generateAdvantageTips,
+  DOMAIN_CONFLICTS,
+} from './mock-rules';
 
-// 优势领域冲突矩阵：哪些领域的优势容易产生冲突
-const DOMAIN_CONFLICTS: Record<string, string[]> = {
-  'executing': ['strategic'], // 执行力和战略思维容易冲突（行动 vs 思考）
-  'influencing': ['relationship'], // 影响力和关系建立容易冲突（推动 vs 和谐）
-  'strategic': ['executing'], // 战略思维和执行力容易冲突（思考 vs 行动）
-  'relationship': ['influencing'], // 关系建立和影响力容易冲突（和谐 vs 推动）
-};
-
-// 检测优势冲突（"打架"）
-function detectStrengthConflicts(strengthDetails: typeof ALL_STRENGTHS): string[] {
-  const conflicts: string[] = [];
-  const domains = strengthDetails.map(s => s.domain);
-  
-  // 检测不同领域的优势冲突
-  for (let i = 0; i < strengthDetails.length; i++) {
-    for (let j = i + 1; j < strengthDetails.length; j++) {
-      const domain1 = strengthDetails[i].domain;
-      const domain2 = strengthDetails[j].domain;
-      
-      // 检查是否在冲突矩阵中
-      if (DOMAIN_CONFLICTS[domain1]?.includes(domain2) || 
-          DOMAIN_CONFLICTS[domain2]?.includes(domain1)) {
-        conflicts.push(`「${strengthDetails[i].name}」与「${strengthDetails[j].name}」`);
-      }
-    }
-  }
-  
-  // 特殊情况：如果同时有"统率"和"和谐"，容易冲突
-  const hasCommand = strengthDetails.some(s => s.id === 'command');
-  const hasHarmony = strengthDetails.some(s => s.id === 'harmony');
-  if (hasCommand && hasHarmony) {
-    const commandStrength = strengthDetails.find(s => s.id === 'command')!;
-    const harmonyStrength = strengthDetails.find(s => s.id === 'harmony')!;
-    if (!conflicts.some(c => c.includes(commandStrength.name) && c.includes(harmonyStrength.name))) {
-      conflicts.push(`「${commandStrength.name}」与「${harmonyStrength.name}」`);
-    }
-  }
-  
-  // 特殊情况：如果同时有"专注"和"统筹"，容易冲突
-  const hasFocus = strengthDetails.some(s => s.id === 'focus');
-  const hasArranger = strengthDetails.some(s => s.id === 'arranger');
-  if (hasFocus && hasArranger) {
-    const focusStrength = strengthDetails.find(s => s.id === 'focus')!;
-    const arrangerStrength = strengthDetails.find(s => s.id === 'arranger')!;
-    if (!conflicts.some(c => c.includes(focusStrength.name) && c.includes(arrangerStrength.name))) {
-      conflicts.push(`「${focusStrength.name}」与「${arrangerStrength.name}」`);
-    }
-  }
-  
-  return conflicts.slice(0, 2); // 最多返回2个冲突
-}
-
-// 检测优势是否掉进"地下室"（被过度使用或误用）
-function detectBasementStrength(
-  scenario: string,
-  strengthDetails: typeof ALL_STRENGTHS,
-  confusion: string
-): string | undefined {
-  // 根据场景和困惑判断哪个优势可能掉进地下室
-  const firstStrength = strengthDetails[0];
-  
-  // 工作决策场景：通常是执行力优势被过度使用
-  if (scenario === 'work-decision') {
-    const executingStrengths = strengthDetails.filter(s => s.domain === 'executing');
-    if (executingStrengths.length > 0 && (confusion.includes('决策') || confusion.includes('选择'))) {
-      return executingStrengths[0].name;
-    }
-    // 如果没有匹配的困惑关键词，也返回第一个执行力优势
-    if (executingStrengths.length > 0) {
-      return executingStrengths[0].name;
-    }
-  }
-  
-  // 效率场景：通常是执行力优势掉进地下室
-  if (scenario === 'efficiency') {
-    const executingStrengths = strengthDetails.filter(s => s.domain === 'executing');
-    if (executingStrengths.length > 0) {
-      return executingStrengths[0].name;
-    }
-  }
-  
-  // 沟通场景：通常是没有沟通优势但试图用其他优势替代
-  if (scenario === 'communication') {
-    const hasCommunication = strengthDetails.some(s => s.id === 'communication');
-    if (!hasCommunication && strengthDetails.length > 0) {
-      // 如果困惑中提到了沟通问题，但Top 5中没有沟通优势，说明在用其他优势硬撑
-      return strengthDetails[0].name;
-    }
-  }
-  
-  // 默认：第一个优势可能被过度使用
-  return strengthDetails[0]?.name;
-}
-
-// 典型案例预设（用于 Demo 展示）
-const DEMO_CASE_KEYWORDS = {
-  'info-overload': ['信息', '搜集', '决策', '信息囤积', '信息涌入', '无法决策'],
-  'responsibility-overload': ['责任', '接单', '兜底', '琐事', '扛住'],
-};
-
-function isDemoCase(confusion: string, strengths: string[]): string | null {
-  const confusionLower = confusion.toLowerCase();
-  
-  // 检测"信息黑洞"典型案例
-  if (
-    (confusionLower.includes('信息') || confusionLower.includes('搜集') || confusionLower.includes('信息囤积')) &&
-    (confusionLower.includes('决策') || confusionLower.includes('无法') || confusionLower.includes('焦虑') || confusionLower.includes('太多')) &&
-    strengths.some(s => s === 'input' || s === '搜集')
-  ) {
-    return 'info-overload';
-  }
-  
-  // 检测"责任过载"典型案例
-  if (
-    (confusionLower.includes('责任') || confusionLower.includes('兜底') || confusionLower.includes('琐事')) &&
-    (confusionLower.includes('太多') || confusionLower.includes('接不住') || confusionLower.includes('失控')) &&
-    strengths.some(s => s === 'responsibility' || s === '责任')
-  ) {
-    return 'responsibility-overload';
-  }
-  
-  return null;
-}
+// 重新导出规则函数，保持向后兼容
+export { detectStrengthConflicts, detectBasementStrength, isDemoCase, generateAdvantageTips, DOMAIN_CONFLICTS };
 
 // 典型案例1："信息黑洞"到"决策漏斗"（搜集+分析+责任）
 function generateInfoOverloadCase(
@@ -163,14 +53,14 @@ function generateInfoOverloadCase(
 
 // 典型案例2："接单机器"到"架构师"（责任过载）
 function generateResponsibilityOverloadCase(
-  scenario: string,
-  strengths: string[],
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
   confusion: string
 ): ResultData {
   const strengthDetails = strengths
     .slice(0, 5)
     .map(id => ALL_STRENGTHS.find(s => s.id === id))
-    .filter(Boolean) as typeof ALL_STRENGTHS;
+    .filter((s): s is typeof ALL_STRENGTHS[number] => s !== undefined);
   
   const strengthNames = strengthDetails.map(s => s.name);
   const firstStrength = strengthNames[0] || '责任';
@@ -204,8 +94,8 @@ function generateResponsibilityOverloadCase(
 }
 
 export function generateMockResult(
-  scenario: string,
-  strengths: string[],
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
   confusion: string
 ): ResultData {
   // 检测是否是典型案例
@@ -219,13 +109,9 @@ export function generateMockResult(
   if (demoCase === 'responsibility-overload') {
     return generateResponsibilityOverloadCase(scenario, strengths, confusion);
   }
-  // 获取优势名称和详细信息
-  const strengthDetails = strengths
-    .slice(0, 5)
-    .map(id => ALL_STRENGTHS.find(s => s.id === id))
-    .filter(Boolean) as typeof ALL_STRENGTHS;
-  
-  const strengthNames = strengthDetails.map(s => s.name);
+  // 获取优势名称和详细信息（使用抽取的纯函数）
+  const strengthDetails = getStrengthDetails(strengths);
+  const strengthNames = getStrengthNames(strengthDetails);
   const firstStrength = strengthNames[0] || '责任';
   const secondStrength = strengthNames[1] || '战略';
   const thirdStrength = strengthNames[2] || '分析';
@@ -348,7 +234,7 @@ export function generateMockResult(
   const blindspotGenerator = blindspotTemplates[scenario] || blindspotTemplates['work-decision'];
   const blindspot = blindspotGenerator(strengthNames);
   
-  // 生成优势锦囊（旋钮调节式建议）
+  // 生成优势锦囊（旋钮调节式建议）- 使用 mock-rules.ts 中的纯函数
   const advantageTips = generateAdvantageTips(
     scenario,
     strengthDetails,
@@ -369,201 +255,5 @@ export function generateMockResult(
   };
 }
 
-// 生成优势锦囊（旋钮调节式建议）
-function generateAdvantageTips(
-  scenario: string,
-  strengthDetails: typeof ALL_STRENGTHS,
-  strengthNames: string[],
-  strengthBasement: string | undefined,
-  strengthConflicts: string[],
-  confusion: string
-): ResultData['advantageTips'] {
-  const reduce: Array<{ strength: string; percentage: number; reason: string }> = [];
-  const increase: Array<{ strength: string; percentage: number; reason: string }> = [];
-  
-  // 根据场景和优势状态生成调节建议
-  if (scenario === 'work-decision') {
-    // 工作决策场景：通常需要调低执行力优势，调高战略思维优势
-    // 特殊检测：如果同时有"搜集"和"专注"，典型的需要调节组合
-    const hasInput = strengthDetails.find(s => s.id === 'input');
-    const hasFocus = strengthDetails.find(s => s.id === 'focus');
-    
-    if (hasInput && hasFocus) {
-      // 经典的"搜集"vs"专注"冲突
-      reduce.push({
-        strength: hasInput.name,
-        percentage: 50,
-        reason: '搜集信息过多会导致决策瘫痪，需要降低信息收集强度'
-      });
-      increase.push({
-        strength: hasFocus.name,
-        percentage: 80,
-        reason: '专注优势能帮你聚焦核心决策点，提升决策效率'
-      });
-    } else {
-      // 常规逻辑
-      const executingStrengths = strengthDetails.filter(s => s.domain === 'executing');
-      const strategicStrengths = strengthDetails.filter(s => s.domain === 'strategic');
-      
-      if (executingStrengths.length > 0 && strengthBasement) {
-        reduce.push({
-          strength: strengthBasement,
-          percentage: 50,
-          reason: '被过度激活导致决策瘫痪'
-        });
-      } else if (executingStrengths.length > 0) {
-        reduce.push({
-          strength: executingStrengths[0].name,
-          percentage: 40,
-          reason: '被过度使用，导致"什么都想抓住"'
-        });
-      }
-      
-      if (strategicStrengths.length > 0) {
-        increase.push({
-          strength: strategicStrengths[0].name,
-          percentage: 80,
-          reason: '需要战略思维来定义"什么是重要的"'
-        });
-      } else if (strengthDetails.length > 1) {
-        // 如果没有战略思维优势，调高第二个优势
-        increase.push({
-          strength: strengthNames[1] || '战略',
-          percentage: 70,
-          reason: '需要战略思维来定义优先级'
-        });
-      }
-    }
-  } else if (scenario === 'efficiency') {
-    // 效率场景：调低掉进地下室的优势，调高其他优势
-    if (strengthBasement) {
-      reduce.push({
-        strength: strengthBasement,
-        percentage: 50,
-        reason: '掉进地下室，需要让它回到高峰'
-      });
-    } else if (strengthDetails.length > 0) {
-      const executingStrengths = strengthDetails.filter(s => s.domain === 'executing');
-      if (executingStrengths.length > 0) {
-        reduce.push({
-          strength: executingStrengths[0].name,
-          percentage: 40,
-          reason: '被过度使用导致效率崩塌'
-        });
-      }
-    }
-    
-    if (strengthDetails.length > 1) {
-      increase.push({
-        strength: strengthNames[1] || '战略',
-        percentage: 80,
-        reason: '用战略优势重构工作流程'
-      });
-    }
-  } else if (scenario === 'communication') {
-    // 沟通场景：调低被误用的优势，调高分析/战略优势
-    const hasCommunication = strengthDetails.some(s => s.id === 'communication');
-    
-    if (!hasCommunication && strengthDetails.length > 0) {
-      // 如果没有沟通优势但试图用其他优势替代，需要调低
-      reduce.push({
-        strength: strengthDetails[0].name,
-        percentage: 50,
-        reason: '被误用于沟通，导致"费力不讨好"'
-      });
-    } else if (strengthBasement) {
-      reduce.push({
-        strength: strengthBasement,
-        percentage: 40,
-        reason: '在沟通中被误用'
-      });
-    }
-    
-    // 调高分析或战略优势用于重构沟通
-    const analyticalStrengths = strengthDetails.filter(s => s.id === 'analytical' || s.domain === 'strategic');
-    if (analyticalStrengths.length > 0) {
-      increase.push({
-        strength: analyticalStrengths[0].name,
-        percentage: 80,
-        reason: '用分析优势在沟通前写好逻辑大纲'
-      });
-    } else if (strengthDetails.length > 2) {
-      increase.push({
-        strength: strengthNames[2] || '分析',
-        percentage: 70,
-        reason: '用现有优势重新定义沟通方式'
-      });
-    }
-  } else if (scenario === 'career-transition') {
-    // 职业转换场景：调低第一个优势（可能被过度使用），调高战略优势
-    if (strengthDetails.length > 0) {
-      reduce.push({
-        strength: strengthNames[0],
-        percentage: 30,
-        reason: '需要为战略思维让出空间'
-      });
-    }
-    
-    const strategicStrengths = strengthDetails.filter(s => s.domain === 'strategic');
-    if (strategicStrengths.length > 0) {
-      increase.push({
-        strength: strategicStrengths[0].name,
-        percentage: 90,
-        reason: '需要战略思维分析赛道选择'
-      });
-    } else if (strengthDetails.length > 1) {
-      increase.push({
-        strength: strengthNames[1] || '战略',
-        percentage: 85,
-        reason: '用战略优势分析哪个赛道能让现有优势发挥最大价值'
-      });
-    }
-  }
-  
-  // 如果没有生成任何建议，生成默认建议
-  if (reduce.length === 0 && increase.length === 0) {
-    if (strengthBasement && strengthDetails.length > 1) {
-      reduce.push({
-        strength: strengthBasement,
-        percentage: 50,
-        reason: '掉进地下室，需要重新激活'
-      });
-      increase.push({
-        strength: strengthNames[1] || '战略',
-        percentage: 80,
-        reason: '需要这个优势来重新定义问题'
-      });
-    } else if (strengthDetails.length >= 2) {
-      reduce.push({
-        strength: strengthNames[0],
-        percentage: 40,
-        reason: '被过度使用'
-      });
-      increase.push({
-        strength: strengthNames[1],
-        percentage: 70,
-        reason: '需要发挥更大作用'
-      });
-    }
-  }
-  
-  // 生成调节指令（使用更自然、更有"操纵感"的表达）
-  const reduceText = reduce.map(r => `把你的「${r.strength}」优势关掉 ${r.percentage}%`).join('，');
-  const increaseText = increase.map(i => `把「${i.strength}」优势调高 ${i.percentage}%`).join('，');
-  
-  let instruction = '';
-  if (reduce.length > 0 && increase.length > 0) {
-    // 更符合示例的表达方式
-    instruction = `如果你明天还要处理类似的事，请试着${reduceText}，${increaseText}。`;
-  } else if (reduce.length > 0) {
-    instruction = `如果你明天还要处理类似的事，请试着${reduceText}。`;
-  } else if (increase.length > 0) {
-    instruction = `如果你明天还要处理类似的事，请试着${increaseText}。`;
-  }
-  
-  return {
-    reduce: reduce.length > 0 ? reduce : undefined,
-    increase: increase.length > 0 ? increase : undefined,
-    instruction,
-  };
-}
+// 生成优势锦囊（旋钮调节式建议）已在 mock-rules.ts 中实现为纯函数
+// mock-data.ts 直接使用 mock-rules.ts 中的版本，确保可测试性

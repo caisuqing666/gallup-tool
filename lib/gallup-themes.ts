@@ -47,22 +47,22 @@ export const THEME_NAMES_CN: Record<string, string> = {
   'Woo': '取悦'
 };
 
-// 按领域分组（简化版）
+// 按领域分组（简化版）- 使用盖洛普官方颜色体系
 export const THEMES_BY_DOMAIN: Record<string, { themes: string[], color: string }> = {
   '执行': {
     themes: ['Achiever', 'Arranger', 'Belief', 'Consistency', 'Deliberative', 'Discipline', 'Focus', 'Responsibility', 'Restorative'],
-    color: '#3B82F6'
+    color: '#7C3AED' // 紫色 - 执行力 (Executing) - 官方紫色 (Violet-600)
   },
   '影响': {
     themes: ['Activator', 'Command', 'Communication', 'Competition', 'Maximizer', 'Self-Assurance', 'Significance', 'Woo'],
-    color: '#EF4444'
+    color: '#F97316' // 橙色 - 影响力 (Influencing)
   },
   '关系建立': {
     themes: ['Adaptability', 'Connectedness', 'Developer', 'Empathy', 'Harmony', 'Includer', 'Individualization', 'Positivity', 'Relator'],
-    color: '#10B981'
+    color: '#3B82F6' // 蓝色 - 关系建立 (Relationship Building)
   },
   '战略思维': {
     themes: ['Analytical', 'Context', 'Futuristic', 'Ideation', 'Input', 'Intellection', 'Learner', 'Strategic'],
-    color: '#8B5CF6'
+    color: '#10B981' // 绿色 - 战略思维 (Strategic Thinking)
   }
 };

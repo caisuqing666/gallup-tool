@@ -1,172 +1,145 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LandingPage from './components/LandingPage';
 import ScenarioPage from './components/ScenarioPage';
 import StrengthsPage from './components/StrengthsPage';
 import InputPage from './components/InputPage';
 import LoadingPage from './components/LoadingPage';
 import ResultPage from './components/ResultPage';
-import { ResultData, FormData } from '@/lib/types';
-
-type Step = 'landing' | 'scenario' | 'strengths' | 'input' | 'loading' | 'result';
+import { useStepMachine } from './hooks/useStepMachine';
+import { ResultData } from '@/lib/types';
 
 export default function Home() {
-  const [step, setStep] = useState<Step>('landing');
-  const [formData, setFormData] = useState<FormData>({
-    strengths: [],
-    confusion: '',
-  });
-  const [resultData, setResultData] = useState<ResultData | null>(null);
+  const { state, actions } = useStepMachine();
+  const [mounted, setMounted] = useState(false);
 
-  // Step 0: 启动页
-  const handleStart = () => {
-    setStep('scenario');
-  };
+  // 确保 hydration 匹配
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // Step 1: 选场景
-  const handleScenarioSelect = (scenarioId: string) => {
-    setFormData((prev) => ({ ...prev, scenario: scenarioId }));
-  };
+  // 提交表单，生成方案
+  useEffect(() => {
+    if (state.step === 'loading' && !state.resultData) {
+      const generateResult = async () => {
+        try {
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              scenario: state.formData.scenario,
+              strengths: state.formData.strengths,
+              confusion: state.formData.confusion,
+            }),
+          });
 
-  const handleScenarioNext = () => {
-    if (formData.scenario) {
-      setStep('strengths');
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: '生成方案失败' }));
+            throw new Error(errorData.error || '生成方案失败');
+          }
+
+          const data = await response.json();
+          actions.submitSuccess(data, false);
+        } catch (error) {
+          console.error('Error generating result:', error);
+          const { generateMockResult } = await import('@/lib/mock-data');
+          const mockData = generateMockResult(
+            state.formData.scenario || '',
+            state.formData.strengths,
+            state.formData.confusion
+          );
+          actions.submitSuccess(mockData, true);
+        }
+      };
+
+      generateResult();
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.step]);
 
-  // Step 1.5: 亮优势
-  const handleStrengthSelect = (strengthId: string) => {
-    setFormData((prev) => {
-      const currentStrengths = prev.strengths;
-      if (currentStrengths.includes(strengthId)) {
-        // 取消选择
-        return { ...prev, strengths: currentStrengths.filter((id) => id !== strengthId) };
-      } else if (currentStrengths.length < 5) {
-        // 添加选择
-        return { ...prev, strengths: [...currentStrengths, strengthId] };
-      }
-      return prev;
+  const handleSave = (savedData: ResultData) => {
+    console.log('用户保存了方案:', {
+      highlight: savedData.highlight,
+      scenario: state.formData.scenario,
+      strengthsCount: state.formData.strengths.length,
+      timestamp: new Date().toISOString(),
     });
   };
 
-  const handleStrengthsNext = () => {
-    if (formData.strengths.length >= 3 && formData.strengths.length <= 5) {
-      setStep('input');
-    }
-  };
+  // hydration 前显示占位符
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  // Step 2: 说困惑
-  const handleConfusionChange = (confusion: string) => {
-    setFormData((prev) => ({ ...prev, confusion }));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.confusion.trim()) return;
-
-    setStep('loading');
-
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          scenario: formData.scenario,
-          strengths: formData.strengths,
-          confusion: formData.confusion,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('生成方案失败');
-      }
-
-      const data: ResultData = await response.json();
-      setResultData(data);
-      setStep('result');
-    } catch (error) {
-      console.error('Error generating result:', error);
-      // 使用 Mock 数据作为后备
-      const { generateMockResult } = await import('@/lib/mock-data');
-      const mockData = generateMockResult(
-        formData.scenario || '',
-        formData.strengths,
-        formData.confusion
-      );
-      setResultData(mockData);
-      setStep('result');
-    }
-  };
-
-  // Step 3: 拿方案
-  const handleSave = () => {
-    // TODO: 实现保存功能
-    console.log('保存方案:', resultData);
-    alert('保存功能开发中');
-  };
-
-  const handleRegenerate = () => {
-    setResultData(null);
-    setStep('input');
-  };
-
-  // 渲染当前步骤
-  switch (step) {
+  // 渲染当前步骤（使用状态机统一管理）
+  switch (state.step) {
     case 'landing':
-      return <LandingPage onStart={handleStart} />;
-    
+      return <LandingPage onStart={actions.start} />;
+
     case 'scenario':
       return (
         <ScenarioPage
-          selectedScenario={formData.scenario}
-          onSelectScenario={handleScenarioSelect}
-          onNext={handleScenarioNext}
+          selectedScenario={state.formData.scenario}
+          onSelectScenario={actions.selectScenario}
+          onNext={actions.nextToStrengths}
+          onBack={actions.back}
         />
       );
-    
+
     case 'strengths':
       return (
         <StrengthsPage
-          selectedStrengths={formData.strengths}
-          onSelectStrength={handleStrengthSelect}
-          onNext={handleStrengthsNext}
+          selectedStrengths={state.formData.strengths}
+          onSelectStrength={actions.selectStrength}
+          onMoveUp={actions.moveStrengthUp}
+          onMoveDown={actions.moveStrengthDown}
+          onNext={actions.nextToInput}
+          onBack={actions.back}
         />
       );
-    
+
     case 'input':
       return (
         <InputPage
-          selectedStrengths={formData.strengths}
-          confusion={formData.confusion}
-          onConfusionChange={handleConfusionChange}
-          onSubmit={handleSubmit}
+          selectedStrengths={state.formData.strengths}
+          confusion={state.formData.confusion}
+          onConfusionChange={actions.updateConfusion}
+          onSubmit={actions.submit}
+          onBack={actions.back}
         />
       );
-    
+
     case 'loading':
       return (
         <LoadingPage
-          selectedStrengths={formData.strengths}
-          confusion={formData.confusion}
+          selectedStrengths={state.formData.strengths}
+          confusion={state.formData.confusion}
         />
       );
-    
+
     case 'result':
-      return resultData ? (
+      return state.resultData ? (
         <ResultPage
-          data={resultData}
+          data={state.resultData}
+          isMockResult={state.isMockResult}
           onSave={handleSave}
-          onRegenerate={handleRegenerate}
+          onRegenerate={actions.regenerate}
+          onBack={actions.back}
         />
       ) : (
         <div className="min-h-screen flex items-center justify-center">
           <p className="text-gray-600">加载中...</p>
         </div>
       );
-    
+
     default:
-      return <LandingPage onStart={handleStart} />;
+      return <LandingPage onStart={actions.start} />;
   }
 }

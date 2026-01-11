@@ -1,155 +1,265 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ALL_STRENGTHS, DOMAIN_COLORS } from '@/lib/gallup-strengths';
+import { useState, useMemo } from 'react';
+import { ALL_STRENGTHS, DOMAIN_COLORS, DOMAIN_NAMES, StrengthId, StrengthDomain } from '@/lib/gallup-strengths';
 
 interface StrengthsPageProps {
-  selectedStrengths: string[];
-  onSelectStrength: (strengthId: string) => void;
+  selectedStrengths: StrengthId[];
+  onSelectStrength: (strengthId: StrengthId) => void;
+  onMoveUp?: (index: number) => void;
+  onMoveDown?: (index: number) => void;
   onNext: () => void;
+  onBack?: () => void;
 }
 
 export default function StrengthsPage({
   selectedStrengths,
   onSelectStrength,
+  onMoveUp,
+  onMoveDown,
   onNext,
+  onBack,
 }: StrengthsPageProps) {
-  const [hoveredStrength, setHoveredStrength] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<StrengthDomain>('executing');
 
   const canProceed = selectedStrengths.length >= 3 && selectedStrengths.length <= 5;
   const selectedCount = selectedStrengths.length;
 
   // 按领域分组
-  const strengthsByDomain = {
+  const strengthsByDomain = useMemo(() => ({
     executing: ALL_STRENGTHS.filter(s => s.domain === 'executing'),
     influencing: ALL_STRENGTHS.filter(s => s.domain === 'influencing'),
     relationship: ALL_STRENGTHS.filter(s => s.domain === 'relationship'),
     strategic: ALL_STRENGTHS.filter(s => s.domain === 'strategic'),
-  };
+  }), []);
 
-  const domainNames: Record<string, string> = {
-    executing: '执行力 EXECUTING',
-    influencing: '影响力 INFLUENCING',
-    relationship: '关系建立 RELATIONSHIP',
-    strategic: '战略思维 STRATEGIC',
-  };
+  const domains: StrengthDomain[] = ['executing', 'influencing', 'relationship', 'strategic'];
 
-  const getRank = (strengthId: string) => {
+  const getRank = (strengthId: StrengthId) => {
     const index = selectedStrengths.indexOf(strengthId);
     return index >= 0 ? index + 1 : null;
   };
 
   return (
-    <div className="min-h-screen bg-cyber-black text-white px-4 py-16 relative overflow-hidden">
-      {/* 动态网格背景 */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+    <div className="page-container">
+      <div className="page-content-wide">
+        {/* 返回按钮 */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="back-button mb-10"
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>返回</span>
+          </button>
+        )}
 
-      <div className="max-w-5xl mx-auto relative z-10">
         {/* 步骤指示器 */}
-        <div className="mb-8 flex items-center gap-4">
-          <div className="h-1 w-12 bg-cyber-emerald rounded-full"></div>
-          <div className="h-1 w-12 bg-cyber-emerald rounded-full"></div>
-          <div className="h-1 w-12 bg-white/10 rounded-full"></div>
-          <span className="cyber-label ml-2">Phase 02: Strength Coding</span>
+        <div className="step-indicator mb-12">
+          <div className="step-dot-completed" />
+          <div className="step-dot-active rounded-full" />
+          <div className="step-dot-inactive" />
+          <span className="text-sm text-text-muted ml-3">步骤 2 / 3</span>
         </div>
 
-        {/* 标题 */}
+        {/* 标题区 */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            告诉我你的 <span className="text-cyber-emerald">Top 5</span> 项优势
-          </h2>
-          <div className="flex justify-center items-center gap-4">
-            <div className={`px-4 py-1 rounded-full text-sm font-mono transition-all duration-300 ${canProceed ? 'bg-cyber-emerald/20 text-cyber-emerald border border-cyber-emerald/30' : 'bg-white/5 text-gray-500 border border-white/10'
-              }`}>
-              STRENGTHS_SELECTED: {selectedCount}/5
-            </div>
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-text-primary mb-4">
+            选择你的 <span className="text-gradient">Top 5</span> 优势
+          </h1>
+          <p className="text-lg text-text-tertiary mb-6">
+            按报告顺序选择你最突出的 3-5 项优势
+          </p>
+
+          {/* 选择计数器 */}
+          <div className={`
+            inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+            ${canProceed
+              ? 'bg-status-success/10 text-status-success border border-status-success/20'
+              : 'bg-bg-secondary text-text-tertiary border border-border'
+            }
+          `}>
+            <span>已选择</span>
+            <span className="font-bold">{selectedCount}</span>
+            <span>/</span>
+            <span>5</span>
           </div>
         </div>
 
-        {/* 优势标签云 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          {Object.entries(strengthsByDomain).map(([domain, strengths]) => (
-            <div key={domain} className="glass-card p-6 border-white/5 bg-white/[0.02]">
-              <h3 className="cyber-label mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: DOMAIN_COLORS[domain as keyof typeof DOMAIN_COLORS] }}></span>
-                {domainNames[domain]}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {strengths.map((strength) => {
-                  const isSelected = selectedStrengths.includes(strength.id);
-                  const rank = getRank(strength.id);
-                  const isDisabled = !isSelected && selectedStrengths.length >= 5;
-                  const color = DOMAIN_COLORS[strength.domain];
+        {/* 领域标签页 */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {domains.map((domain) => {
+            const isActive = activeTab === domain;
+            const color = DOMAIN_COLORS[domain];
+            const selectedInDomain = strengthsByDomain[domain].filter(
+              s => selectedStrengths.includes(s.id)
+            ).length;
 
-                  return (
-                    <motion.button
-                      key={strength.id}
-                      onClick={() => !isDisabled && onSelectStrength(strength.id)}
-                      onMouseEnter={() => setHoveredStrength(strength.id)}
-                      onMouseLeave={() => setHoveredStrength(null)}
-                      disabled={isDisabled}
-                      whileHover={!isDisabled ? { scale: 1.05 } : {}}
-                      whileTap={!isDisabled ? { scale: 0.95 } : {}}
-                      className={`
-                        relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 border
-                        ${isSelected
-                          ? 'text-white border-transparent'
-                          : isDisabled
-                            ? 'bg-transparent text-gray-700 border-white/5 opacity-30 cursor-not-allowed'
-                            : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30 hover:bg-white/10'
-                        }
-                      `}
-                      style={{
-                        backgroundColor: isSelected ? color : undefined,
-                        boxShadow: isSelected ? `0 0 15px ${color}40` : undefined,
-                      }}
+            return (
+              <button
+                key={domain}
+                onClick={() => setActiveTab(domain)}
+                className={`
+                  relative px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300
+                  ${isActive
+                    ? 'text-white shadow-card'
+                    : 'bg-bg-card text-text-secondary border border-border hover:border-border-dark'
+                  }
+                `}
+                style={{
+                  backgroundColor: isActive ? color : undefined,
+                }}
+              >
+                {DOMAIN_NAMES[domain]}
+                {selectedInDomain > 0 && (
+                  <span className={`
+                    ml-2 px-1.5 py-0.5 text-xs rounded-full
+                    ${isActive ? 'bg-white/20' : 'bg-bg-tertiary'}
+                  `}>
+                    {selectedInDomain}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 优势选择区 */}
+        <div className="bg-bg-card rounded-2xl border border-border-light p-6 md:p-8 mb-8">
+          <div className="flex flex-wrap justify-center gap-3">
+            {strengthsByDomain[activeTab].map((strength) => {
+              const isSelected = selectedStrengths.includes(strength.id);
+              const rank = getRank(strength.id);
+              const isDisabled = !isSelected && selectedStrengths.length >= 5;
+              const color = DOMAIN_COLORS[strength.domain];
+
+              return (
+                <button
+                  key={strength.id}
+                  onClick={() => !isDisabled && onSelectStrength(strength.id)}
+                  disabled={isDisabled}
+                  className={`
+                    relative px-5 py-3 rounded-xl text-base font-medium transition-all duration-300
+                    ${isSelected
+                      ? 'text-white shadow-card'
+                      : isDisabled
+                        ? 'bg-bg-secondary text-text-muted cursor-not-allowed opacity-50'
+                        : 'bg-bg-secondary text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
+                    }
+                  `}
+                  style={{
+                    backgroundColor: isSelected ? color : undefined,
+                  }}
+                >
+                  {rank && (
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-text-primary text-white text-xs font-bold flex items-center justify-center shadow-soft">
+                      {rank}
+                    </span>
+                  )}
+                  {strength.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 已选优势列表 */}
+        {selectedStrengths.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-lg font-semibold text-text-primary mb-4 text-center">
+              已选优势排序
+            </h3>
+            <div className="space-y-2 max-w-2xl mx-auto">
+              {selectedStrengths.map((strengthId, index) => {
+                const strength = ALL_STRENGTHS.find(s => s.id === strengthId);
+                if (!strength) return null;
+                const color = DOMAIN_COLORS[strength.domain];
+                const canMoveUp = index > 0 && onMoveUp;
+                const canMoveDown = index < selectedStrengths.length - 1 && onMoveDown;
+
+                return (
+                  <div
+                    key={strengthId}
+                    className="flex items-center gap-4 p-4 bg-bg-card rounded-xl border border-border-light"
+                  >
+                    {/* 排名标识 */}
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                      style={{ backgroundColor: color }}
                     >
-                      {rank && (
-                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white text-cyber-black text-[10px] font-bold flex items-center justify-center shadow-lg">
-                          {rank}
-                        </span>
+                      {index + 1}
+                    </div>
+
+                    {/* 优势名称 */}
+                    <div className="flex-1 flex items-center gap-3">
+                      <span className="text-text-primary font-medium">{strength.name}</span>
+                      <span className="text-xs text-text-muted px-2 py-1 rounded-full bg-bg-secondary">
+                        {DOMAIN_NAMES[strength.domain]}
+                      </span>
+                    </div>
+
+                    {/* 操作按钮 */}
+                    <div className="flex items-center gap-1">
+                      {canMoveUp && (
+                        <button
+                          onClick={() => onMoveUp(index)}
+                          className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-colors"
+                          title="上移"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
                       )}
-                      {strength.name}
-                    </motion.button>
-                  );
-                })}
-              </div>
+                      {canMoveDown && (
+                        <button
+                          onClick={() => onMoveDown(index)}
+                          className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-colors"
+                          title="下移"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onSelectStrength(strengthId)}
+                        className="p-2 rounded-lg text-text-muted hover:text-status-error hover:bg-status-error/10 transition-colors"
+                        title="移除"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        {/* 核心优势捕获提示 */}
-        <AnimatePresence>
-          {selectedStrengths.length === 5 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="text-center text-cyber-emerald mb-4"
-            >
-              已捕捉到你的核心优势组合
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {/* 指引说明 */}
-        <div className="text-center mb-12">
-          <p className="text-gray-500 text-sm max-w-lg mx-auto leading-relaxed">
-            建议按报告顺序选择前 5 项。这 5 种能量的相互激荡，构成了你解决问题的独特底层操作系统。
+        {/* 完成提示 */}
+        {selectedStrengths.length === 5 && (
+          <p className="text-center text-status-success font-medium mb-6">
+            已捕捉到你的核心优势组合
           </p>
-        </div>
+        )}
 
-        {/* 底部交互区 */}
-        <div className="sticky bottom-8 flex justify-center">
-          <motion.button
+        {/* 底部操作区 */}
+        <div className="flex justify-center">
+          <button
             onClick={onNext}
             disabled={!canProceed}
-            className="cyber-button text-lg px-16 shadow-[0_0_40px_rgba(16,185,129,0.2)]"
+            className="btn-primary text-lg px-12"
           >
-            下一步：输入当前困惑
-          </motion.button>
+            下一步：描述困惑
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
