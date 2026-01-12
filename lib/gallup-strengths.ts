@@ -73,13 +73,13 @@ export function getStrengthById(id: StrengthId): Strength | undefined {
   return ALL_STRENGTHS.find((s) => s.id === id);
 }
 
-// 领域配色方案 - 柔和专业色彩（智性温暖 + 晶石）
-// 与 tailwind.config.js 中的 domain 颜色保持一致
+// 领域配色方案 - 盖洛普官方颜色（柔和版，智性温暖 + 晶石）
+// 使用之前推送版本的柔和色系，但确保类型正确
 export const DOMAIN_COLORS = {
-  executing: '#5B8A72',     // 执行力 - 沉稳绿
-  influencing: '#C4956A',   // 影响力 - 温暖橙
-  relationship: '#7B6B8A',  // 关系建立 - 优雅紫
-  strategic: '#5A7A9A',    // 战略思维 - 深邃蓝
+  executing: '#8B7A9B',     // 执行力 - 柔和紫色（保持之前柔和度）
+  influencing: '#B8A082',   // 影响力 - 柔和黄色（保持之前柔和度）
+  relationship: '#7A8B9B',   // 关系建立 - 柔和蓝色（保持之前柔和度）
+  strategic: '#6B8E6B',     // 战略思维 - 柔和绿色（保持之前柔和度）
 };
 
 // 领域名称映射

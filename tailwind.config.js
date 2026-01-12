@@ -49,12 +49,12 @@ module.exports = {
           dark: '#D4D0CB',         // 深边框
           focus: '#6B5B4D',        // 聚焦边框
         },
-        // 领域色彩 - 柔和的专业色调
+        // 领域色彩 - 盖洛普官方颜色（柔和版，保持之前推送版本的柔和度）
         domain: {
-          executing: '#5B8A72',    // 执行力 - 沉稳绿
-          influencing: '#C4956A',  // 影响力 - 温暖橙
-          relationship: '#7B6B8A', // 关系建立 - 优雅紫
-          strategic: '#5A7A9A',    // 战略思维 - 深邃蓝
+          executing: '#8B7A9B',    // 执行力 - 柔和紫色（保持之前柔和度）
+          influencing: '#B8A082',  // 影响力 - 柔和黄色（保持之前柔和度）
+          relationship: '#7A8B9B', // 关系建立 - 柔和蓝色（保持之前柔和度）
+          strategic: '#6B8E6B',    // 战略思维 - 柔和绿色（保持之前柔和度）
         },
         // 状态色 - 柔和版本
         status: {
