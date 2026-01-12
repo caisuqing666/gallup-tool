@@ -177,8 +177,8 @@ export function generateAdvantageTips(
   strengthDetails: readonly (typeof ALL_STRENGTHS[number])[],
   strengthNames: string[],
   strengthBasement: string | undefined,
-  strengthConflicts: string[],
-  confusion: string
+  _strengthConflicts: string[],
+  _confusion: string
 ): {
   reduce?: Array<{ strength: string; percentage: number; reason: string }>;
   increase?: Array<{ strength: string; percentage: number; reason: string }>;

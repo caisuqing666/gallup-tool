@@ -1,9 +1,6 @@
 // 核心类型定义
 // 注意：Strength 和 Scenario 类型已迁移到各自的定义文件中，这里保持导出以便兼容
 
-import type { Strength, StrengthId } from './gallup-strengths';
-import type { Scenario, ScenarioId } from './scenarios';
-
 export type { Strength, StrengthId } from './gallup-strengths';
 export type { Scenario, ScenarioId } from './scenarios';
 
