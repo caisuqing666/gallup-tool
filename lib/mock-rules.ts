@@ -194,7 +194,7 @@ export function generateAdvantageTips(
       reduce.push({
         strength: strengthBasement,
         percentage: 50,
-        reason: '掉进地下室，需要重新激活'
+        reason: '你现在用力的方式，正在拖累你。需要调整使用方式'
       });
     }
     
@@ -292,7 +292,7 @@ export function generateAdvantageTips(
       reduce.push({
         strength: strengthBasement,
         percentage: 50,
-        reason: '掉进地下室，需要重新激活'
+        reason: '你现在用力的方式，正在拖累你。需要调整使用方式'
       });
       increase.push({
         strength: strengthNames[1] || '战略',

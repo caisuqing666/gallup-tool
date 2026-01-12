@@ -129,6 +129,7 @@ export default function Home() {
       return state.resultData ? (
         <ResultPage
           data={state.resultData}
+          scenario={state.formData.scenario}
           isMockResult={state.isMockResult}
           onSave={handleSave}
           onRegenerate={actions.regenerate}
