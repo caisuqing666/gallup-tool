@@ -313,17 +313,17 @@ export function generateAdvantageTips(
     }
   }
   
-  // 生成调节指令（使用更自然、更有"操纵感"的表达）
+  // 生成调节指令（直接指令，无商量感）
   const reduceText = reduce.map(r => `把你的「${r.strength}」优势关掉 ${r.percentage}%`).join('，');
   const increaseText = increase.map(i => `把「${i.strength}」优势调高 ${i.percentage}%`).join('，');
   
   let instruction = '';
   if (reduce.length > 0 && increase.length > 0) {
-    instruction = `如果你明天还要处理类似的事，请试着${reduceText}，${increaseText}。`;
+    instruction = `${reduceText}，${increaseText}。`;
   } else if (reduce.length > 0) {
-    instruction = `如果你明天还要处理类似的事，请试着${reduceText}。`;
+    instruction = `${reduceText}。`;
   } else if (increase.length > 0) {
-    instruction = `如果你明天还要处理类似的事，请试着${increaseText}。`;
+    instruction = `${increaseText}。`;
   }
   
   return {

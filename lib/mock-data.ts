@@ -36,7 +36,7 @@ function generateInfoOverloadCase(
       '瞬间止损：告诉团队，下午 3 点前我不再接收任何新信息，哪怕它看起来很重要'
     ],
     advantageTips: {
-      instruction: '如果你明天还要处理类似的事，请试着把你的「搜集」优势关掉 50%，把「专注」优势调高 80%。',
+      instruction: '把你的「搜集」优势关掉 50%，把「专注」优势调高 80%。',
       reduce: [{
         strength: '搜集',
         percentage: 50,
@@ -78,7 +78,7 @@ function generateResponsibilityOverloadCase(
       `定义终点：每天下班前，用你的"${secondStrength}"优势列出明天绝对不碰的 3 件事，而不是要做的事`
     ],
     advantageTips: {
-      instruction: `如果你明天还要处理类似的事，请试着把你的「${firstStrength}」优势关掉 50%，把「${secondStrength}」优势调高 80%。`,
+      instruction: `把你的「${firstStrength}」优势关掉 50%，把「${secondStrength}」优势调高 80%。`,
       reduce: [{
         strength: firstStrength,
         percentage: 50,
@@ -186,9 +186,9 @@ export function generateMockResult(
     },
     'communication': (s, basement) => {
       if (basement) {
-        return `你的"${basement}"优势在沟通中被误用：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你，导致"费力不讨好"的困境。你没有沟通优势，但可以用"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
+        return `你的"${basement}"优势在沟通中被误用：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你，导致"费力不讨好"的困境。用"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
       } else {
-        return `你的"${s[0]}"优势在沟通中被误用，导致"费力不讨好"的困境。你没有沟通优势，但可以"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
+        return `你的"${s[0]}"优势在沟通中被误用，导致"费力不讨好"的困境。用"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
       }
     },
   };

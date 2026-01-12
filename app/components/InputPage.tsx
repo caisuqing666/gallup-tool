@@ -15,7 +15,7 @@ interface InputPageProps {
 const TEMPLATE_TIPS = [
   '我拥有 [优势]，但现在遇到 [具体困境]，导致我 [负面结果]',
   '比如：我拥有「责任」，但项目截止期变动，导致我陷入混乱不敢决策',
-  '别担心措辞，哪怕是吐槽也可以——真实的表达更容易找到答案',
+  '描述具体场景和感受，真实表达有助于系统精准诊断',
 ];
 
 export default function InputPage({
@@ -154,7 +154,7 @@ export default function InputPage({
             {/* 底部信息栏 */}
             <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 bg-bg-card/80 backdrop-blur-sm rounded-b-2xl p-2 sm:p-0 sm:bg-transparent">
               <p className="text-xs text-text-muted hidden sm:block">
-                建议描述具体场景和感受，便于 AI 精准分析
+                描述具体场景和感受，便于系统精准诊断
               </p>
               <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
                 <span className={`text-xs sm:text-sm font-medium transition-colors ${
@@ -200,7 +200,7 @@ export default function InputPage({
 
           <p className="mt-6 text-sm text-text-muted">
             {canSubmit
-              ? '点击按钮，AI 将基于你的优势组合生成行动建议'
+              ? '点击按钮，系统将基于你的优势组合生成执行指令'
               : '请至少输入 10 个字符描述你的困惑'
             }
           </p>

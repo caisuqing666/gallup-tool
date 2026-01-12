@@ -72,9 +72,9 @@ function getDiagnosisLabel(scenario?: ScenarioId): DiagnosisType {
 function getEfficiencyStatus(scenario?: ScenarioId): { label: string; percentage: number } {
   const statusMap: Record<ScenarioId, { label: string; percentage: number }> = {
     'work-decision': { label: '推进效能偏低', percentage: 35 },
-    'career-transition': { label: '选择效能不足', percentage: 40 },
-    'efficiency': { label: '执行效能偏低', percentage: 30 },
-    'communication': { label: '沟通效能不足', percentage: 35 },
+    'career-transition': { label: '有效推进不足', percentage: 40 },
+    'efficiency': { label: '推进效能偏低', percentage: 30 },
+    'communication': { label: '推进效能偏低', percentage: 35 },
   };
   return scenario ? statusMap[scenario] : { label: '推进效能偏低', percentage: 35 };
 }
@@ -127,6 +127,15 @@ export default function ResultPage({ data, scenario, isMockResult = false, onSav
 
     setIsSaving(true);
     try {
+      // 生成图片前，强制显示所有模块（确保图片包含完整内容）
+      setShowDiagnosis(true);
+      setShowBlindspot(true);
+      setShowActions(true);
+      setShowTips(true);
+      
+      // 等待一小段时间，确保 DOM 更新完成
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const canvas = await html2canvas(containerRef.current, {
         scale: 2,
         useCORS: true,
@@ -272,34 +281,60 @@ export default function ResultPage({ data, scenario, isMockResult = false, onSav
                 {scenarioConclusion ? (
                   <div className="space-y-6 sm:space-y-8">
                     {/* 1. 核心判词（The Verdict）- 反白效果，占据约1/3面积，字号最大（H1），加粗 */}
-                    <div className="bg-text-primary text-white rounded-xl p-6 sm:p-8 md:p-10 lg:p-12 min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[160px] shadow-lg relative">
-                      {/* 身份标签：系统判断 */}
-                      <span className="absolute top-3 left-3 sm:top-4 sm:left-4 text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-medium">
+                    <div className="bg-text-primary text-white rounded-xl p-6 sm:p-8 md:p-10 lg:p-12 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[240px] shadow-lg relative">
+                      {/* 身份标签：系统判断 - 金色 */}
+                      <span className="absolute top-3 left-3 sm:top-4 sm:left-4 text-[10px] sm:text-xs text-accent uppercase tracking-wider font-medium">
                         系统判断
                       </span>
                       
-                      {/* 诊断结论标签 */}
-                      <div className="mb-4 sm:mb-6 pt-6 sm:pt-0">
-                        <span className="inline-block px-3 py-1.5 bg-white/20 border border-white/30 rounded-md text-xs sm:text-sm font-medium text-white/90 tracking-wide">
+                      {/* 诊断结论标签 - 金色 */}
+                      <div className="mb-5 sm:mb-7 pt-6 sm:pt-0">
+                        <span className="inline-block px-3 py-1.5 bg-accent/20 border border-accent/40 rounded-md text-xs sm:text-sm font-medium text-accent tracking-wide">
                           [ 诊断结论：{getDiagnosisLabel(scenario)} ]
                         </span>
                       </div>
                       
-                      {/* 核心断言：一句话最终裁决 - 最突出 */}
+                      {/* 核心断言：一句话最终裁决 - 最突出，白色 */}
                       <div className="flex items-center">
-                        <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
+                        <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white whitespace-pre-line">
                           {scenarioConclusion.verdict}
                         </h3>
                       </div>
                     </div>
 
-                    {/* 2. 困境还原（The Experience）- 衬线体，大行间距，更具读感 */}
-                    <div className="font-serif text-text-secondary leading-[2.0] sm:leading-[2.1] text-base sm:text-lg md:text-xl whitespace-pre-line px-2 sm:px-4">
-                      {scenarioConclusion.experience}
+                    {/* 分隔线 */}
+                    <div className="border-t border-border-light my-6 sm:my-8">
+                      <div className="text-center text-text-muted text-xs mt-2">——</div>
                     </div>
 
-                    {/* 3. 指令出口（The Pivot）- 治疗方向，权重仅次于黑盒子 */}
-                    <div className="bg-brand-subtle/40 border-l-[5px] border-brand rounded-xl p-6 sm:p-7 md:p-9 mt-6 sm:mt-8 transition-all duration-300 hover:bg-brand-subtle/50">
+                    {/* 2. 证据记录（Evidence）- 技术性列表，低权重 */}
+                    {scenarioConclusion.evidence && scenarioConclusion.evidence.length > 0 ? (
+                      <div className="mb-6 sm:mb-8">
+                        <h4 className="text-xs sm:text-sm text-text-muted uppercase tracking-wider font-medium mb-4">
+                          证据记录
+                        </h4>
+                        <ul className="space-y-2.5 text-sm sm:text-base text-text-secondary">
+                          {scenarioConclusion.evidence.map((item, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-text-muted font-medium flex-shrink-0 min-w-[3rem]">
+                                {item.label}：
+                              </span>
+                              <span className="text-text-secondary">{item.content}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {/* 分隔线 */}
+                    {scenarioConclusion.evidence && scenarioConclusion.evidence.length > 0 && (
+                      <div className="border-t border-border-light my-6 sm:my-8">
+                        <div className="text-center text-text-muted text-xs mt-2">——</div>
+                      </div>
+                    )}
+
+                    {/* 3. 纠偏指令 - 治疗方向，权重仅次于黑盒子 */}
+                    <div className="bg-brand-subtle/40 border-l-[5px] border-brand rounded-xl p-6 sm:p-7 md:p-9">
                       <div className="flex items-start gap-4 sm:gap-5">
                         {/* 实心箭头图标 */}
                         <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-brand/20 flex items-center justify-center">
@@ -312,45 +347,17 @@ export default function ResultPage({ data, scenario, isMockResult = false, onSav
                           </svg>
                         </div>
                         <div className="flex-1 space-y-3">
-                          {/* 治疗指令文案 */}
-                          <p className="text-text-primary font-semibold text-lg sm:text-xl md:text-2xl leading-relaxed">
-                            {scenarioConclusion.pivot}
-                          </p>
-                          
-                          {/* 效能折损率可视化（状态提示） */}
-                          {(() => {
-                            const efficiency = getEfficiencyStatus(scenario);
-                            const blocks = 5;
-                            const filledBlocks = Math.round((efficiency.percentage / 100) * blocks);
-                            
-                            return (
-                              <div className="pt-2 border-t border-border-light">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm text-text-secondary font-medium">
-                                    当前状态：{efficiency.label}
-                                  </span>
-                                  <span className="text-xs text-text-muted">
-                                    约 {efficiency.percentage - 10}–{efficiency.percentage + 10}%
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {Array.from({ length: blocks }).map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`h-3 flex-1 rounded ${
-                                        i < filledBlocks
-                                          ? 'bg-status-warning/60'
-                                          : 'bg-border'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                                <p className="text-xs text-text-muted mt-2 italic">
-                                  当前状态下，你的有效推进能力不足一半。
-                                </p>
-                              </div>
-                            );
-                          })()}
+                          {/* 纠偏指令文案 */}
+                          <div>
+                            <p className="text-text-primary font-semibold text-lg sm:text-xl md:text-2xl leading-relaxed whitespace-pre-line">
+                              {scenarioConclusion.pivot}
+                            </p>
+                            {scenarioConclusion.execution && (
+                              <p className="text-sm sm:text-base text-text-secondary mt-3 font-medium">
+                                执行方式：{scenarioConclusion.execution}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -551,7 +558,7 @@ export default function ResultPage({ data, scenario, isMockResult = false, onSav
             </motion.section>
           )}
 
-          {/* 模块四：现在的用力方式建议 */}
+          {/* 模块四：现在的用力方式指令 */}
           {showTips && data.advantageTips && data.advantageTips.instruction && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
@@ -562,7 +569,7 @@ export default function ResultPage({ data, scenario, isMockResult = false, onSav
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="w-8 h-8 rounded-full bg-domain-relationship/10 text-domain-relationship flex items-center justify-center text-sm font-bold">4</span>
-                    <h2 className="text-lg font-semibold text-text-primary">现在的用力方式建议</h2>
+                    <h2 className="text-lg font-semibold text-text-primary">现在的用力方式指令</h2>
                   </div>
                   <p className="text-sm text-text-muted ml-11">不是你能力不够，是顺序用反了。</p>
                 </div>

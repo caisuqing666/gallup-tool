@@ -5,6 +5,7 @@ import { ResultData } from './types';
 import { ScenarioId, StrengthId } from './types';
 import { GALLUP_SYSTEM_PROMPT, buildUserPrompt } from './prompts';
 import { generateMockResult } from './mock-data';
+import { validateAndSanitizeDiagnosis } from './verdict-validator';
 
 // Feature flag：控制是否使用 AI（默认为 false，使用 Mock）
 export const ENABLE_AI = process.env.ENABLE_AI === 'true' || process.env.NEXT_PUBLIC_ENABLE_AI === 'true';
@@ -64,13 +65,16 @@ async function generateWithClaude(
 
   try {
     // 解析 JSON 响应
-    const result = JSON.parse(content) as ResultData;
-    return result;
+    const rawResult = JSON.parse(content) as ResultData & { diagnosis_label?: string; verdict?: string; experience?: string; pivot?: string };
+    
+    // 验证并清理输出（确保符合判词库规则）
+    return validateAndSanitizeDiagnosis(rawResult);
   } catch (e) {
     // 如果响应不是 JSON，尝试提取 JSON 部分
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]) as ResultData;
+      const rawResult = JSON.parse(jsonMatch[0]) as ResultData;
+      return validateAndSanitizeDiagnosis(rawResult);
     }
     throw new Error('AI 返回的响应格式不正确，无法解析 JSON');
   }
@@ -117,7 +121,10 @@ async function generateWithOpenAI(
   const content = data.choices[0].message.content;
 
   try {
-    return JSON.parse(content) as ResultData;
+    const rawResult = JSON.parse(content) as ResultData & { diagnosis_label?: string; verdict?: string; experience?: string; pivot?: string };
+    
+    // 验证并清理输出（确保符合判词库规则）
+    return validateAndSanitizeDiagnosis(rawResult);
   } catch (e) {
     throw new Error('AI 返回的响应格式不正确，无法解析 JSON');
   }
