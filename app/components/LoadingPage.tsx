@@ -31,8 +31,8 @@ export default function LoadingPage({ selectedStrengths, confusion }: LoadingPag
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-6">
-      <div className="max-w-lg mx-auto text-center">
+    <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
+      <div className="max-w-lg mx-auto text-center px-2">
         {/* 加载动画 */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -75,7 +75,7 @@ export default function LoadingPage({ selectedStrengths, confusion }: LoadingPag
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl md:text-3xl font-serif font-bold text-text-primary mb-4"
+            className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-text-primary mb-3 sm:mb-4"
           >
             正在生成你的行动方案
           </motion.h2>
@@ -84,10 +84,11 @@ export default function LoadingPage({ selectedStrengths, confusion }: LoadingPag
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-base text-text-tertiary leading-relaxed mb-6"
+            className="text-sm sm:text-base text-text-tertiary leading-relaxed mb-4 sm:mb-6"
           >
             基于你的「<span className="text-brand font-medium">{strengthNames}</span>」优势
-            <br />
+            <br className="hidden sm:block" />
+            <span className="sm:hidden"> </span>
             分析「{confusionPreview}」的根源...
           </motion.p>
 

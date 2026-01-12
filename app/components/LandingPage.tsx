@@ -15,7 +15,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   }, []);
 
   if (!mounted) {
-    return <div className="min-h-screen bg-bg-primary" />;
+    return (
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -24,16 +28,16 @@ export default function LandingPage({ onStart }: LandingPageProps) {
       <div className="h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
 
       {/* 主内容区 */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 md:py-24">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-16 md:py-24">
         <div className="max-w-3xl mx-auto text-center">
           {/* 品牌标签 */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
-            <span className="badge-brand">
+            <span className="badge-brand text-xs sm:text-sm">
               The Humanist Archive
             </span>
           </motion.div>
@@ -43,7 +47,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-text-primary mb-6 tracking-tight leading-[1.1]"
+            className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-text-primary mb-4 sm:mb-6 tracking-tight leading-[1.1] px-2"
           >
             盖洛普优势
             <br />
@@ -55,7 +59,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="text-lg md:text-xl text-text-tertiary mb-12 max-w-xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-text-tertiary mb-8 sm:mb-12 max-w-xl mx-auto leading-relaxed px-4"
           >
             以温润的洞察，将你的天赋解码为
             <span className="text-brand font-medium mx-1">精准可执行</span>
@@ -70,7 +74,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           >
             <button
               onClick={onStart}
-              className="btn-primary text-lg px-12"
+              className="btn-primary w-full sm:w-auto px-8 sm:px-12"
             >
               开始探索
             </button>
@@ -81,7 +85,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="mt-20 flex items-center justify-center gap-8 md:gap-16"
+            className="mt-12 sm:mt-16 md:mt-20 flex items-center justify-center gap-6 sm:gap-8 md:gap-16"
           >
             {[
               { value: '34', label: '项优势' },
@@ -95,10 +99,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
                 className="text-center"
               >
-                <div className="text-3xl md:text-4xl font-serif font-bold text-text-primary mb-1">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-text-primary mb-1">
                   {stat.value}
                 </div>
-                <div className="text-sm text-text-muted tracking-wide">
+                <div className="text-xs sm:text-sm text-text-muted tracking-wide">
                   {stat.label}
                 </div>
               </motion.div>

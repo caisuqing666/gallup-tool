@@ -119,7 +119,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
         </motion.div>
       )}
 
-      <div className="min-h-screen bg-bg-primary px-4 py-8 md:py-12" ref={containerRef}>
+      <div className="min-h-screen bg-bg-primary px-4 sm:px-6 py-8 sm:py-12" ref={containerRef}>
         <div className="max-w-3xl mx-auto">
           {/* 返回按钮 */}
           {onBack && (
@@ -142,8 +142,8 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
           >
-            <div className="bg-brand-subtle border border-brand/20 rounded-2xl p-8 md:p-10 mb-4">
-              <h1 className="text-2xl md:text-4xl font-serif font-bold text-brand-dark leading-tight min-h-[80px] md:min-h-[100px]">
+            <div className="bg-brand-subtle border border-brand/20 rounded-2xl p-6 sm:p-8 md:p-10 mb-4">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-serif font-bold text-brand-dark leading-tight min-h-[60px] sm:min-h-[80px] md:min-h-[100px] px-2">
                 {highlightText}
                 {isTypingHighlight && <span className="typing-cursor" />}
               </h1>
@@ -162,7 +162,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
               animate={{ opacity: 1, y: 0 }}
               className="mb-8"
             >
-              <div className="bg-bg-card rounded-2xl border border-border-light p-6 md:p-8">
+              <div className="bg-bg-card rounded-2xl border border-border-light p-4 sm:p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-full bg-domain-strategic/10 text-domain-strategic flex items-center justify-center text-sm font-bold">1</span>
                   <h2 className="text-lg font-semibold text-text-primary">系统诊断</h2>
@@ -209,7 +209,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
               animate={{ opacity: 1, y: 0 }}
               className="mb-8"
             >
-              <div className="bg-bg-card rounded-2xl border border-border-light p-6 md:p-8">
+              <div className="bg-bg-card rounded-2xl border border-border-light p-4 sm:p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-full bg-status-warning/10 text-status-warning flex items-center justify-center text-sm font-bold">2</span>
                   <h2 className="text-lg font-semibold text-text-primary">盲区提醒</h2>
@@ -227,7 +227,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
               animate={{ opacity: 1, y: 0 }}
               className="mb-8"
             >
-              <div className="bg-bg-card rounded-2xl border border-border-light p-6 md:p-8">
+              <div className="bg-bg-card rounded-2xl border border-border-light p-4 sm:p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="w-8 h-8 rounded-full bg-domain-executing/10 text-domain-executing flex items-center justify-center text-sm font-bold">3</span>
                   <h2 className="text-lg font-semibold text-text-primary">替代性行动</h2>
@@ -271,7 +271,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
               animate={{ opacity: 1, y: 0 }}
               className="mb-8"
             >
-              <div className="bg-bg-card rounded-2xl border border-border-light p-6 md:p-8">
+              <div className="bg-bg-card rounded-2xl border border-border-light p-4 sm:p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 rounded-full bg-domain-relationship/10 text-domain-relationship flex items-center justify-center text-sm font-bold">4</span>
@@ -343,7 +343,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center mt-12"
+            className="flex flex-col sm:flex-row gap-3 justify-center mt-8 sm:mt-12 px-4"
           >
             {onSave && (
               <motion.button
@@ -351,7 +351,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
                 disabled={isSaving}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto min-h-[48px] touch-manipulation"
               >
                 {isSaving ? '保存中...' : '保存为图片'}
               </motion.button>
@@ -361,7 +361,7 @@ export default function ResultPage({ data, isMockResult = false, onSave, onRegen
                 onClick={onRegenerate}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="btn-secondary"
+                className="btn-secondary w-full sm:w-auto min-h-[48px] touch-manipulation"
               >
                 换个场景
               </motion.button>

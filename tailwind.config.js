@@ -9,12 +9,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // 新设计系统 - 温润人文 + 现代专业
-        // 背景色系
+        // 新设计系统 - 智性温暖 + 晶石 + 光晕
+        // 背景色系（冷色系，专业感）
         bg: {
-          primary: '#FAFAF8',      // 主背景 - 温暖米白
-          secondary: '#F5F3F0',    // 次背景 - 浅灰米
-          tertiary: '#EFECEA',     // 第三背景
+          primary: '#F8F9FA',      // 主背景 - 冷色系浅灰
+          secondary: '#F1F3F5',    // 次背景 - 冷色系中灰
+          tertiary: '#E9ECEF',    // 第三背景 - 冷色系深灰
           card: '#FFFFFF',         // 卡片背景
           elevated: '#FFFFFF',     // 浮层背景
         },
@@ -34,12 +34,12 @@ module.exports = {
           dark: '#96754A',         // 深金棕
           muted: '#B8956B1A',      // 10% 透明度
         },
-        // 文字色系
+        // 文字色系（深灰，专业感）
         text: {
-          primary: '#1A1A1A',      // 主文字 - 浓墨
-          secondary: '#4A4A4A',    // 次要文字
-          tertiary: '#6B6B6B',     // 第三文字
-          muted: '#9CA3AF',        // 辅助文字
+          primary: '#212529',      // 主文字 - 深灰
+          secondary: '#495057',    // 次要文字 - 中灰
+          tertiary: '#6C757D',     // 第三文字 - 浅灰
+          muted: '#ADB5BD',        // 辅助文字 - 更浅灰
           inverse: '#FFFFFF',      // 反色文字
         },
         // 边框色系

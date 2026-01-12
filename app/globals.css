@@ -11,10 +11,10 @@
    ======================================== */
 
 :root {
-  /* 背景色 */
-  --bg-primary: #FAFAF8;
-  --bg-secondary: #F5F3F0;
-  --bg-tertiary: #EFECEA;
+  /* 背景色（冷色系，专业感） */
+  --bg-primary: #F8F9FA;
+  --bg-secondary: #F1F3F5;
+  --bg-tertiary: #E9ECEF;
   --bg-card: #FFFFFF;
 
   /* 品牌色 */
@@ -26,21 +26,21 @@
   --accent: #B8956B;
   --accent-light: #D4B896;
 
-  /* 文字色 */
-  --text-primary: #1A1A1A;
-  --text-secondary: #4A4A4A;
-  --text-tertiary: #6B6B6B;
-  --text-muted: #9CA3AF;
+  /* 文字色（深灰，专业感） */
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-tertiary: #6C757D;
+  --text-muted: #ADB5BD;
 
   /* 边框色 */
   --border: #E5E2DE;
   --border-light: #F0EDEA;
 
-  /* 领域色 - 柔和专业色彩（降低饱和度） */
-  --domain-executing: #A78BFA;    /* 执行力 - 柔和紫 */
-  --domain-influencing: #FBBF24;  /* 影响力 - 柔和橙 */
-  --domain-relationship: #60A5FA; /* 关系建立 - 柔和蓝 */
-  --domain-strategic: #34D399;    /* 战略思维 - 柔和绿 */
+  /* 领域色 - 柔和专业色彩（智性温暖 + 晶石） */
+  --domain-executing: #5B8A72;    /* 执行力 - 沉稳绿 */
+  --domain-influencing: #C4956A;  /* 影响力 - 温暖橙 */
+  --domain-relationship: #7B6B8A; /* 关系建立 - 优雅紫 */
+  --domain-strategic: #5A7A9A;    /* 战略思维 - 深邃蓝 */
 }
 
 /* ========================================
@@ -53,11 +53,13 @@ html {
 
 body {
   font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--text-secondary);
-  background-color: var(--bg-primary);
+  color: var(--text-primary) !important;
+  background-color: var(--bg-primary) !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.7;
+  margin: 0;
+  padding: 0;
 }
 
 /* 标题使用衬线字体 */
@@ -74,22 +76,28 @@ h1, h2, h3, h4, h5, h6 {
 @layer components {
   /* 主按钮 - 手册章节入口风格 */
   .btn-primary {
-    @apply relative inline-flex items-center justify-center px-10 py-4
-           bg-[#8B7355] text-white font-sans font-medium text-lg
+    @apply relative inline-flex items-center justify-center 
+           px-6 py-3 md:px-10 md:py-4
+           min-h-[48px] md:min-h-[52px]
+           bg-[#8B7355] text-white font-sans font-medium 
+           text-base md:text-lg
            rounded-lg shadow-soft border border-[#7A6548]
            transition-all duration-300 ease-smooth
            hover:bg-[#7A6548] hover:shadow-md hover:-translate-y-0.5
-           active:scale-[0.98]
+           active:scale-[0.98] touch-manipulation
            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
 
   /* 次要按钮 */
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3
-           bg-bg-card text-text-secondary font-sans font-medium text-base
+    @apply inline-flex items-center justify-center 
+           px-4 py-2.5 md:px-6 md:py-3
+           min-h-[48px] md:min-h-[48px]
+           bg-bg-card text-text-secondary font-sans font-medium 
+           text-sm md:text-base
            rounded-xl border border-border transition-all duration-300 ease-smooth
            hover:border-border-dark hover:bg-bg-secondary hover:shadow-soft
-           active:scale-[0.98]
+           active:scale-[0.98] touch-manipulation
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
@@ -122,12 +130,13 @@ h1, h2, h3, h4, h5, h6 {
     @apply w-full px-4 py-3 bg-bg-card text-text-primary
            border border-border rounded-xl
            placeholder:text-text-muted
+           text-base
            transition-all duration-200
            focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-muted;
   }
 
   .textarea {
-    @apply input min-h-[200px] resize-none leading-relaxed;
+    @apply input min-h-[180px] sm:min-h-[200px] resize-none leading-relaxed;
   }
 
   /* 标签 */
@@ -174,7 +183,9 @@ h1, h2, h3, h4, h5, h6 {
   .back-button {
     @apply inline-flex items-center gap-2 text-text-tertiary
            font-sans text-sm transition-colors duration-200
-           hover:text-text-primary;
+           hover:text-text-primary
+           min-h-[44px] px-2 -ml-2
+           touch-manipulation;
   }
 
   .back-button svg {
@@ -187,7 +198,7 @@ h1, h2, h3, h4, h5, h6 {
 
   /* 页面容器 */
   .page-container {
-    @apply min-h-screen bg-bg-primary px-6 py-12 md:py-20;
+    @apply min-h-screen bg-bg-primary px-4 py-8 sm:px-6 sm:py-12 md:py-20;
   }
 
   .page-content {

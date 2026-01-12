@@ -73,13 +73,13 @@ export function getStrengthById(id: StrengthId): Strength | undefined {
   return ALL_STRENGTHS.find((s) => s.id === id);
 }
 
-// 领域配色方案 - 柔和专业色彩（降低饱和度，退到第二感知层）
-// 执行力(Executing) - 柔和紫 | 影响力(Influencing) - 柔和橙 | 关系建立(Relationship) - 柔和蓝 | 战略思维(Strategic) - 柔和绿
+// 领域配色方案 - 柔和专业色彩（智性温暖 + 晶石）
+// 与 tailwind.config.js 中的 domain 颜色保持一致
 export const DOMAIN_COLORS = {
-  executing: '#A78BFA',     // 执行力 - 柔和紫
-  influencing: '#FBBF24',   // 影响力 - 柔和橙
-  relationship: '#60A5FA',  // 关系建立 - 柔和蓝
-  strategic: '#34D399',     // 战略思维 - 柔和绿
+  executing: '#5B8A72',     // 执行力 - 沉稳绿
+  influencing: '#C4956A',   // 影响力 - 温暖橙
+  relationship: '#7B6B8A',  // 关系建立 - 优雅紫
+  strategic: '#5A7A9A',    // 战略思维 - 深邃蓝
 };
 
 // 领域名称映射

@@ -9,6 +9,7 @@ import LoadingPage from './components/LoadingPage';
 import ResultPage from './components/ResultPage';
 import { useStepMachine } from './hooks/useStepMachine';
 import { ResultData } from '@/lib/types';
+import { generateMockResult } from '@/lib/mock-data';
 
 export default function Home() {
   const { state, actions } = useStepMachine();
@@ -45,7 +46,7 @@ export default function Home() {
           actions.submitSuccess(data, false);
         } catch (error) {
           console.error('Error generating result:', error);
-          const { generateMockResult } = await import('@/lib/mock-data');
+          // 使用 mock 数据作为降级方案
           const mockData = generateMockResult(
             state.formData.scenario || '',
             state.formData.strengths,
