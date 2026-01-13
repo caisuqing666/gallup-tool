@@ -209,6 +209,131 @@ function mockAIResponse(defaultTone: RenderTone = { style: 'professional', detai
   });
 }
 
+// ========== 强稳定模式：Fallback 结构 ==========
+
+/**
+ * 生成完整的 fallback JSON
+ * 确保：任何情况下都能返回前端可渲染的完整结构
+ */
+function getFallbackStage4Output(diagnosis: Stage3Output, tone: RenderTone): Stage4Output {
+  const strengths = diagnosis.top_strengths.map(s => s.name);
+  const primaryStrength = strengths[0] || '优势';
+  const secondaryStrength = strengths[1] || primaryStrength;
+
+  return {
+    meta: {
+      generated_at: new Date().toISOString(),
+      tone,
+      word_count: 0,
+    },
+    sections: [
+      {
+        type: 'highlight',
+        content: {
+          title: '你的优势诊断',
+          typewriter_texts: ['你是', `${primaryStrength}者`],
+          subtitle: '基于你的优势生成行动方案',
+        },
+      },
+      {
+        type: 'diagnosis',
+        content: {
+          verdict_card: {
+            title: '核心诊断',
+            verdict: diagnosis.profile_summary || `你是以${primaryStrength}为核心的优势系统`,
+            confidence_level: 'high',
+          },
+          evidence_list: diagnosis.proof_points.slice(0, 3).map((proof, i) => ({
+            claim: `证据 ${i + 1}`,
+            source_quote: proof.slice(0, 30),
+            theme_badges: [primaryStrength],
+          })),
+          pivot_card: {
+            heading: '关键转折',
+            content: diagnosis.current_pattern || '需要平衡优势的使用',
+            action_hint: '从思考转向行动',
+          },
+        },
+      },
+      {
+        type: 'blindspot',
+        content: {
+          heading: '盲区提醒',
+          anti_intuitive_statement: '过度依赖优势可能成为限制',
+          explanation: `${primaryStrength}让你擅长思考，但可能导致行动迟缓`,
+          watch_out_for: '在需要快速决策时陷入过度分析',
+        },
+      },
+      {
+        type: 'action_increase',
+        content: {
+          heading: '增加的行为',
+          core_conclusion: `更多发挥你的${primaryStrength}优势`,
+          behaviors: diagnosis.leverage_plan.slice(0, 3).map((plan, i) => ({
+            title: `行动建议 ${i + 1}`,
+            description: plan,
+            target_theme: primaryStrength,
+          })),
+        },
+      },
+      {
+        type: 'action_decrease',
+        content: {
+          heading: '减少的行为',
+          behaviors: diagnosis.anti_pattern.slice(0, 2).map((pattern, i) => ({
+            title: `避免 ${i + 1}`,
+            description: pattern,
+            target_theme: secondaryStrength,
+          })),
+        },
+      },
+      {
+        type: 'micro_habits',
+        content: {
+          heading: '7天微习惯',
+          habits: diagnosis.micro_habits_7d.length > 0
+            ? diagnosis.micro_habits_7d
+            : [
+                '第1天：设定明确的行动目标',
+                '第2天：在优势领域投入1小时',
+                '第3天：记录一个优势应用的例子',
+              ],
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * 验证并修复 Stage4Output
+ * 确保所有必需字段都存在
+ */
+function validateAndFixStage4Output(output: unknown, diagnosis: Stage3Output, tone: RenderTone): Stage4Output {
+  if (!output || typeof output !== 'object') {
+    return getFallbackStage4Output(diagnosis, tone);
+  }
+
+  const obj = output as Record<string, unknown>;
+
+  // 检查是否有 meta
+  if (!obj.meta || typeof obj.meta !== 'object') {
+    return getFallbackStage4Output(diagnosis, tone);
+  }
+
+  // 检查是否有 sections 且是数组
+  if (!Array.isArray(obj.sections)) {
+    return getFallbackStage4Output(diagnosis, tone);
+  }
+
+  // 检查 sections 是否为空
+  if (obj.sections.length === 0) {
+    return getFallbackStage4Output(diagnosis, tone);
+  }
+
+  // 基本结构验证通过，通过 unknown 转换后返回
+  return obj as unknown as Stage4Output;
+}
+
 // ========== 主函数 ==========
 
 export async function stage4_render(
@@ -217,33 +342,35 @@ export async function stage4_render(
   tone: RenderTone,
   temperature?: number
 ): Promise<Stage4Output> {
-  const systemPrompt = STAGE4_SYSTEM_PROMPTS[tone.style];
-  const userPrompt = buildStage4UserPrompt(diagnosis, tone);
-  
-  const rawResponse = await callAI(config, systemPrompt, userPrompt, temperature);
-  
-  let parsed: Stage4Output;
+  // 先生成 fallback（强稳定模式：始终有保底方案）
+  const fallbackOutput = getFallbackStage4Output(diagnosis, tone);
+
   try {
-    parsed = JSON.parse(rawResponse);
-  } catch (e) {
-    const match = rawResponse.match(/\{[\s\S]*\}/);
-    if (match) {
-      parsed = JSON.parse(match[0]);
-    } else {
-      throw new Error(`Stage 4 parse failed: ${rawResponse.slice(0, 100)}`);
+    const systemPrompt = STAGE4_SYSTEM_PROMPTS[tone.style];
+    const userPrompt = buildStage4UserPrompt(diagnosis, tone);
+
+    const rawResponse = await callAI(config, systemPrompt, userPrompt, temperature);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawResponse);
+    } catch (e) {
+      // 尝试提取 JSON 片段
+      const match = rawResponse.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        // JSON 解析完全失败，使用 fallback
+        console.warn('[Stage4] JSON parse failed, using fallback:', rawResponse.slice(0, 100));
+        return fallbackOutput;
+      }
     }
+
+    // 验证并修复输出
+    return validateAndFixStage4Output(parsed, diagnosis, tone);
+  } catch (error) {
+    // 任何异常都返回 fallback
+    console.error('[Stage4] Error occurred, using fallback:', error);
+    return fallbackOutput;
   }
-  
-  if (!parsed.meta) {
-    parsed.meta = {
-      generated_at: new Date().toISOString(),
-      tone,
-      word_count: 0,
-    };
-  }
-  if (!parsed.sections) {
-    parsed.sections = [];
-  }
-  
-  return parsed;
 }
