@@ -56,8 +56,8 @@ export default function Home() {
             throw new Error(errorData.error || '生成方案失败');
           }
 
-          const data = await response.json();
-          actions.submitSuccess(data, false);
+          const responseJson = await response.json();
+          actions.submitSuccess(responseJson.data, false);
         } catch (error) {
           console.error('Error generating result:', error);
           // 使用 mock 数据作为降级方案

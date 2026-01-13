@@ -1,5 +1,6 @@
 import { useReducer, useEffect, useMemo, useCallback } from 'react';
 import { FormData, ResultData } from '@/lib/types';
+import type { Stage4Output } from '@/lib/pipeline';
 import { ScenarioId } from '@/lib/scenarios';
 import { StrengthId } from '@/lib/gallup-strengths';
 
@@ -10,7 +11,7 @@ export type Step = 'landing' | 'scenario' | 'strengths' | 'input' | 'loading' | 
 export interface StepState {
   step: Step;
   formData: FormData;
-  resultData: ResultData | null;
+  resultData: ResultData | Stage4Output | null;
   isLoading: boolean;
   error: string | null;
   isMockResult?: boolean; // 标记当前结果是否为 Mock 数据
@@ -28,7 +29,7 @@ export type StepAction =
   | { type: 'NEXT_TO_INPUT' }
   | { type: 'UPDATE_CONFUSION'; payload: string }
   | { type: 'SUBMIT' }
-  | { type: 'SUBMIT_SUCCESS'; payload: ResultData; isMock?: boolean } // 标记是否为 Mock 数据
+  | { type: 'SUBMIT_SUCCESS'; payload: ResultData | Stage4Output; isMock?: boolean } // 标记是否为 Mock 数据
   | { type: 'SUBMIT_ERROR'; payload: string }
   | { type: 'BACK' }
   | { type: 'REGENERATE' }
@@ -325,7 +326,7 @@ export function useStepMachine() {
     nextToInput: () => dispatch({ type: 'NEXT_TO_INPUT' }),
     updateConfusion: (confusion: string) => dispatch({ type: 'UPDATE_CONFUSION', payload: confusion }),
     submit: () => dispatch({ type: 'SUBMIT' }),
-    submitSuccess: (result: ResultData, isMock: boolean = false) => dispatch({ type: 'SUBMIT_SUCCESS', payload: result, isMock }),
+    submitSuccess: (result: ResultData | Stage4Output, isMock: boolean = false) => dispatch({ type: 'SUBMIT_SUCCESS', payload: result, isMock }),
     moveStrengthUp: (index: number) => dispatch({ type: 'MOVE_STRENGTH_UP', payload: index }),
     moveStrengthDown: (index: number) => dispatch({ type: 'MOVE_STRENGTH_DOWN', payload: index }),
     submitError: (error: string) => dispatch({ type: 'SUBMIT_ERROR', payload: error }),

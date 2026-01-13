@@ -111,7 +111,7 @@ export interface Stage4Output {
 // ========== 通用配置 ==========
 
 export interface AIProviderConfig {
-  provider: 'anthropic' | 'openai' | 'mock';
+  provider: 'anthropic' | 'openai' | 'zhipu' | 'mock';
   model: string;
   apiKey?: string;
   baseURL?: string;

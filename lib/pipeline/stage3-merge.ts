@@ -79,9 +79,9 @@ async function callAI(
 ): Promise<string> {
   const controller = new AbortController();
   const timeout = config.timeout || 90000;
-  
+
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     if (config.provider === 'anthropic') {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -100,7 +100,7 @@ async function callAI(
         }),
         signal: controller.signal,
       });
-      
+
       if (!response.ok) throw new Error(`Anthropic API error: ${response.status}`);
       const data = await response.json();
       return data.content[0].text;
@@ -122,8 +122,30 @@ async function callAI(
         }),
         signal: controller.signal,
       });
-      
+
       if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } else if (config.provider === 'zhipu') {
+      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          max_tokens: 2000,
+          temperature: 0.5,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) throw new Error(`Zhipu API error: ${response.status}`);
       const data = await response.json();
       return data.choices[0].message.content;
     } else {

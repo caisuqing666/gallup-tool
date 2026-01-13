@@ -134,17 +134,19 @@ export async function POST(request: NextRequest) {
 }
 
 async function handlePipelineRequest(reportText: string) {
-  const aiEnabled = process.env.ENABLE_AI === 'true' || 
+  const aiEnabled = process.env.ENABLE_AI === 'true' ||
                     process.env.NEXT_PUBLIC_ENABLE_AI === 'true';
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
+  const zhipuKey = process.env.ZHIPU_API_KEY;
   const provider = process.env.AI_PROVIDER || 'anthropic';
-  
+
   const hasValidKey = (provider === 'anthropic' && anthropicKey?.startsWith('sk-')) ||
-                      (provider === 'openai' && openaiKey?.startsWith('sk-'));
-  
+                      (provider === 'openai' && openaiKey?.startsWith('sk-')) ||
+                      (provider === 'zhipu' && zhipuKey);
+
   const preset = (aiEnabled && hasValidKey) ? 'balanced' : 'fast';
-  
+
   const config: PipelineConfig = {
     stage1: {
       max_chunk_size: 800,
@@ -175,6 +177,11 @@ async function handlePipelineRequest(reportText: string) {
       config.stage2.provider = { provider: 'openai', model: 'gpt-4o-mini', apiKey: openaiKey };
       config.stage3.provider = { provider: 'openai', model: 'gpt-4o-mini', apiKey: openaiKey };
       config.stage4.provider = { provider: 'openai', model: 'gpt-4o', apiKey: openaiKey };
+    } else if (provider === 'zhipu' && zhipuKey) {
+      const model = process.env.ZHIPU_MODEL || 'glm-4-flash';
+      config.stage2.provider = { provider: 'zhipu', model, apiKey: zhipuKey };
+      config.stage3.provider = { provider: 'zhipu', model, apiKey: zhipuKey };
+      config.stage4.provider = { provider: 'zhipu', model, apiKey: zhipuKey };
     }
   }
 
