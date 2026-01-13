@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import LandingPage from './components/LandingPage';
 import ScenarioPage from './components/ScenarioPage';
 import StrengthsPage from './components/StrengthsPage';
@@ -10,19 +10,32 @@ import ResultPage from './components/ResultPage';
 import { useStepMachine } from './hooks/useStepMachine';
 import { ResultData } from '@/lib/types';
 import { generateMockResult } from '@/lib/mock-data';
+import { addHistory } from '@/lib/history';
 
 export default function Home() {
   const { state, actions } = useStepMachine();
   const [mounted, setMounted] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // 确保 hydration 匹配
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // 取消生成
+  const handleCancelGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    actions.back();
+  }, [actions]);
+
   // 提交表单，生成方案
   useEffect(() => {
     if (state.step === 'loading' && !state.resultData) {
+      // 创建新的 AbortController
+      abortControllerRef.current = new AbortController();
+      
       const generateResult = async () => {
         try {
           const response = await fetch('/api/generate', {
@@ -35,6 +48,7 @@ export default function Home() {
               strengths: state.formData.strengths,
               confusion: state.formData.confusion,
             }),
+            signal: abortControllerRef.current?.signal,
           });
 
           if (!response.ok) {
@@ -67,6 +81,14 @@ export default function Home() {
       scenario: state.formData.scenario,
       strengthsCount: state.formData.strengths.length,
       timestamp: new Date().toISOString(),
+    });
+    
+    // 添加到历史记录
+    addHistory({
+      scenario: state.formData.scenario || 'work-decision',
+      strengths: state.formData.strengths,
+      confusion: state.formData.confusion,
+      result: savedData,
     });
   };
 
@@ -122,6 +144,7 @@ export default function Home() {
         <LoadingPage
           selectedStrengths={state.formData.strengths}
           confusion={state.formData.confusion}
+          onCancel={handleCancelGeneration}
         />
       );
 
