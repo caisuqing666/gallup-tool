@@ -1,7 +1,7 @@
 // 结果历史记录管理
 // 使用 localStorage 存储用户的历史生成记录
 
-import { ResultData } from './types';
+import { GallupResult } from './types';
 import { ScenarioId } from './scenarios';
 import { StrengthId } from './gallup-strengths';
 
@@ -11,7 +11,7 @@ export interface HistoryItem {
   scenario: ScenarioId;
   strengths: StrengthId[];
   confusion: string;
-  result: ResultData;
+  result: GallupResult;
 }
 
 const HISTORY_STORAGE_KEY = 'gallup_history';
@@ -103,16 +103,15 @@ export function getHistoryByScenario(scenario: ScenarioId): HistoryItem[] {
 }
 
 /**
- * 搜索历史记录（搜索困惑描述）
+ * 搜索历史记录（搜索困惑描述、核心判词）
  */
 export function searchHistory(keyword: string): HistoryItem[] {
   const history = getHistory();
   const lowerKeyword = keyword.toLowerCase();
-  
-  return history.filter(item => 
+
+  return history.filter(item =>
     item.confusion.toLowerCase().includes(lowerKeyword) ||
-    item.result.highlight.toLowerCase().includes(lowerKeyword) ||
-    item.result.judgment.toLowerCase().includes(lowerKeyword)
+    item.result.decide.verdict.toLowerCase().includes(lowerKeyword)
   );
 }
 

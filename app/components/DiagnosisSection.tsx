@@ -36,9 +36,10 @@ export default function DiagnosisSection({ data, scenario }: DiagnosisSectionPro
         )}
 
         {/* 系统诊断补充说明（有内耗 / Basement 时统一用人话总结） */}
-        {(data.strengthConflicts || data.strengthBasement) && (
+        {/* Legacy code commented out - unused component with deprecated types */}
+        {/* (data.strengthConflicts || data.strengthBasement) && (
           <DiagnosisSupplement />
-        )}
+        ) */}
       </div>
     </motion.section>
   );

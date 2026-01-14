@@ -8,7 +8,7 @@ import InputPage from './components/InputPage';
 import LoadingPage from './components/LoadingPage';
 import ResultPage from './components/ResultPage';
 import { useStepMachine } from './hooks/useStepMachine';
-import { ResultData } from '@/lib/types';
+import { GallupResult } from '@/lib/types';
 import { generateMockResult } from '@/lib/mock-data';
 import { addHistory } from '@/lib/history';
 
@@ -75,14 +75,13 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.step]);
 
-  const handleSave = (savedData: ResultData) => {
+  const handleSave = (savedData: GallupResult) => {
     console.log('用户保存了方案:', {
-      highlight: savedData.highlight,
       scenario: state.formData.scenario,
       strengthsCount: state.formData.strengths.length,
       timestamp: new Date().toISOString(),
     });
-    
+
     // 添加到历史记录
     addHistory({
       scenario: state.formData.scenario || 'work-decision',
@@ -151,9 +150,8 @@ export default function Home() {
     case 'result':
       return state.resultData ? (
         <ResultPage
-          data={state.resultData}
-          scenario={state.formData.scenario}
-          isMockResult={state.isMockResult}
+          explainData={state.resultData.explain}
+          decideData={state.resultData.decide}
           onSave={handleSave}
           onRegenerate={actions.regenerate}
           onBack={actions.back}

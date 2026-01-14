@@ -1,5 +1,4 @@
 // 核心类型定义
-// 注意：Strength 和 Scenario 类型已迁移到各自的定义文件中，这里保持导出以便兼容
 
 // 导入类型以便在接口中使用
 import type { ScenarioId } from './scenarios';
@@ -9,33 +8,90 @@ import type { StrengthId } from './gallup-strengths';
 export type { Strength, StrengthId } from './gallup-strengths';
 export type { Scenario, ScenarioId } from './scenarios';
 
-export interface ResultData {
-  // 高光词条（方案名称）- 给方案起一个酷的名字
-  highlight: string;
-  
-  // 系统判断（结论先行）
-  judgment: string;
-  
-  // 优势配比逻辑
-  strengthConflicts?: string[]; // 哪些优势在"打架"
-  strengthBasement?: string; // 哪个优势掉进"地下室"
-  
-  // 盲区提醒（1条）- 优势误区
-  blindspot: string;
-  
-  // 行动建议（最多3条，包含反直觉建议）- 替代性行动
-  actions: string[];
-  
-  // 优势锦囊（旋钮调节式建议）
-  advantageTips?: {
-    reduce?: Array<{ strength: string; percentage: number; reason: string }>; // 需要调低的优势
-    increase?: Array<{ strength: string; percentage: number; reason: string }>; // 需要调高的优势
-    instruction: string; // 整体的调节指令
-  };
-}
+// 从 prompts.ts 导入新类型
+export type { ExplainOutput, DecideOutput } from './prompts';
+
+// ============================================================
+// 表单数据类型
+// ============================================================
 
 export interface FormData {
   scenario?: ScenarioId;
   strengths: StrengthId[];
   confusion: string;
+}
+
+// ============================================================
+// 解释页数据类型
+// ============================================================
+
+export interface ExplainData {
+  // 单优势的现实表现
+  strengthManifestations: Array<{
+    strengthId: string;
+    behaviors: string;
+  }>;
+  // 优势组合的相互作用
+  strengthInteractions: string;
+  // 这组组合常见的认知盲区
+  blindspots: string;
+  // 一句总结性说明
+  summary: string;
+}
+
+// ============================================================
+// 判定页数据类型
+// ============================================================
+
+export interface DecideData {
+  // 当前阶段的优势使用判定
+  verdict: string;
+  // 更应该多做的事（至少3条）
+  doMore: Array<{
+    action: string;
+    timing: string;
+    criteria: string;
+    consequence: string; // 不做会怎样
+  }>;
+  // 更应该少做/不再做的事（至少3条）
+  doLess: Array<{
+    action: string;
+    replacement: string;
+    timing: string;
+  }>;
+  // 责任边界的明确划分（至少3条）
+  boundaries: Array<{
+    responsibleFor: string;
+    notResponsibleFor: string;
+  }>;
+  // 用对力判断规则
+  checkRule: string;
+}
+
+// ============================================================
+// 完整结果类型（用于兼容旧代码）
+// @deprecated 使用 ExplainData 和 DecideData 替代
+// ============================================================
+
+export interface ResultData {
+  highlight: string;
+  judgment: string;
+  blindspot: string;
+  actions: string[];
+  advantageTips?: {
+    reduce?: Array<{ strength: string; percentage: number; reason: string }>;
+    increase?: Array<{ strength: string; percentage: number; reason: string }>;
+    instruction: string;
+  };
+}
+
+// ============================================================
+// 新的统一输出类型
+// ============================================================
+
+export interface GallupResult {
+  // 解释页内容
+  explain: ExplainData;
+  // 判定页内容
+  decide: DecideData;
 }

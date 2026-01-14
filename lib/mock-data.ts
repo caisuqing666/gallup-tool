@@ -1,239 +1,364 @@
 // Mock 数据生成器（用于演示）
-// 核心理念：不补短板，用优势解决问题（反直觉）
+// 解释页和判定页完全分离
 
-import { ResultData } from './types';
+import { GallupResult, ExplainData, DecideData } from './types';
 import { ALL_STRENGTHS, StrengthId } from './gallup-strengths';
 import { ScenarioId } from './scenarios';
-// 导入规则判断函数（已抽取到 mock-rules.ts 中）
 import {
   detectStrengthConflicts,
   detectBasementStrength,
-  isDemoCase,
   getStrengthDetails,
   getStrengthNames,
-  generateAdvantageTips,
   DOMAIN_CONFLICTS,
 } from './mock-rules';
 
 // 重新导出规则函数，保持向后兼容
-export { detectStrengthConflicts, detectBasementStrength, isDemoCase, generateAdvantageTips, DOMAIN_CONFLICTS };
+export { detectStrengthConflicts, detectBasementStrength, DOMAIN_CONFLICTS };
 
-// 典型案例1："信息黑洞"到"决策漏斗"（搜集+分析+责任）
-function generateInfoOverloadCase(
-  scenario: string,
-  strengths: string[],
-  confusion: string
-): ResultData {
+// 典型案例1："信息黑洞"（搜集+分析+责任）
+function generateExplainInfoOverload(
+  _scenario: string,
+  strengths: string[]
+): ExplainData {
   return {
-    highlight: '停止看信息，开始做选择|把现在的混乱，收敛成一个能推进的决定。',
-    judgment: '你的"搜集"优势正在过载。它本该为你提供素材，现在却成了你逃避决策的避风港。你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。',
-    strengthBasement: '搜集',
-    strengthConflicts: ['「搜集」与「分析」'],
-    blindspot: '你以为再多看一份文档就能做决定，其实你已经分析过度了。现在的阻碍不是缺乏信息，而是你的"责任"感让你害怕错过任何细节。',
-    actions: [
-      '物理阻断：删除浏览器 50% 以上的标签页，只留 3 个',
-      '优势位移：启动"分析"优势，不看内容，只看权重。给待办事项标上 1/2/3',
-      '瞬间止损：告诉团队，下午 3 点前我不再接收任何新信息，哪怕它看起来很重要'
-    ],
-    advantageTips: {
-      instruction: '把你的「搜集」优势关掉 50%，把「专注」优势调高 80%。',
-      reduce: [{
-        strength: '搜集',
-        percentage: 50,
-        reason: '搜集信息过多会导致决策瘫痪，需要降低信息收集强度'
-      }],
-      increase: [{
-        strength: '专注',
-        percentage: 80,
-        reason: '专注优势能帮你聚焦核心决策点，提升决策效率'
-      }]
-    }
+    strengthManifestations: strengths.slice(0, 3).map((id) => {
+      const behaviors: Record<string, string> = {
+        搜集: '你会不断打开新标签页，总觉得信息还不够，迟迟不肯开始做决定。每个链接都想点开看看。',
+        分析: '你会反复对比细节，试图找到"最正确"的答案，结果越比越乱。你会在两个选项之间来回切换，就是定不下来。',
+        责任: '你会默认所有事都"不能出错、不能放手"，觉得拒绝就是不负责任。别人一求助你就答应。',
+        专注: '你会盯着一件事做到底，其他事很难插进来。别人叫你你都听不见。',
+        战略: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花很多时间在"如果...会怎样"的思考上。',
+        统筹: '你会试图同时管理 5 件事以上，结果每件事都推进不超过 20%。你的待办清单越来越长，完成的事却没几件。',
+      };
+      return {
+        strengthId: id,
+        behaviors: behaviors[id] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
+      };
+    }),
+    strengthInteractions: `当你的"${strengths[0]}"遇到"${strengths[1]}"，你会先拼命收集所有信息，然后一头扎进细节反复分析。你的"${strengths[2] || '责任'}"让你害怕做错决定，结果你越准备越焦虑。你陷入了"收集—分析—再收集"的循环，永远觉得还不够。`,
+    blindspots: `你这组优势会让你误以为"再多看一点就能做决定"，但其实你早就在用"${strengths[0]}"逃避"选择"了。信息够不够根本不是问题，问题是你不敢选。`,
+    summary: '你这组优势的核心模式：用准备代替选择。',
   };
 }
 
-// 典型案例2："接单机器"到"架构师"（责任过载）
-function generateResponsibilityOverloadCase(
-  scenario: ScenarioId | string,
-  strengths: StrengthId[] | string[],
-  confusion: string
-): ResultData {
+function generateDecideInfoOverload(
+  _scenario: string,
+  strengths: string[]
+): DecideData {
+  return {
+    verdict: `现在应该用专注替代搜集，用选择替代准备。`,
+    doMore: [
+      {
+        action: '每天下午 3 点后，不再接收任何新信息',
+        timing: '今天开始',
+        criteria: '即使看起来很重要也等到明天',
+        consequence: '否则，你的注意力仍然会被低价值事项稀释，到了晚上什么重要的事都没做完。',
+      },
+      {
+        action: '用"分析"优势给待办事项标权重 1/2/3',
+        timing: '从下一个任务开始',
+        criteria: '1=今天必须做，2=明天做，3=本周可以不做',
+        consequence: '否则，你又会陷入"所有事都重要"的幻觉，一天下来忙碌但无果。',
+      },
+      {
+        action: '选定一件事，其他的明确说"不"',
+        timing: '今天下班前',
+        criteria: '这件事做完能让你睡得着觉',
+        consequence: '否则，你会继续被所有可能的选择拖住，到了晚上仍然没有任何一件事推进到底。',
+      },
+    ],
+    doLess: [
+      {
+        action: '不再试图让所有事都"准备好"',
+        replacement: '用"够用就行"替代"准备充分"',
+        timing: '从下一个任务开始',
+      },
+      {
+        action: '不再反复对比选项',
+        replacement: '选一个能推进的，先做起来再说',
+        timing: '从今天开始',
+      },
+      {
+        action: '不再害怕"错过重要信息"',
+        replacement: '相信自己的判断力，不靠信息堆砌',
+        timing: '立即',
+      },
+    ],
+    boundaries: [
+      {
+        responsibleFor: '你选定的那件事的完成',
+        notResponsibleFor: '其他事的结果',
+      },
+      {
+        responsibleFor: '做出决定并推进',
+        notResponsibleFor: '证明决定是"最正确的"',
+      },
+      {
+        responsibleFor: '用现有信息做出最佳判断',
+        notResponsibleFor: '收集所有可能的信息',
+      },
+    ],
+    checkRule: '判断标准：今天是否选了一件事并推进到底，其他事都没碰。',
+  };
+}
+
+// 典型案例2："接单机器"（责任过载）
+function generateExplainResponsibilityOverload(
+  _scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[]
+): ExplainData {
   const strengthDetails = strengths
     .slice(0, 5)
-    .map(id => ALL_STRENGTHS.find(s => s.id === id))
+    .map((id) => ALL_STRENGTHS.find((s) => s.id === id))
     .filter((s): s is typeof ALL_STRENGTHS[number] => s !== undefined);
-  
-  const strengthNames = strengthDetails.map(s => s.name);
-  const firstStrength = strengthNames[0] || '责任';
-  const secondStrength = strengthNames[1] || '战略';
-  
+
+  const strengthNames = strengthDetails.map((s) => s.name);
+
   return {
-    highlight: '停止接所有事，开始选重点|把你现在的忙碌，收敛成一个能推进的方向。',
-    judgment: `你的"${firstStrength}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。它与你的"${secondStrength}"优势在互相拉扯——你在反复想，但没有更靠近答案。你试图用"${firstStrength}"去扛住所有琐事，却挤压了"${secondStrength}"去梳理大局的空间。`,
-    strengthBasement: firstStrength,
-    strengthConflicts: [`「${firstStrength}」与「${secondStrength}」`],
-    blindspot: `你不需要变得更"果断"，你需要变得更"挑剔"。你现在的焦虑不是因为你能力不足，而是因为你错误地认为"不拒绝"等同于"负责"。在当前的转型期，你对烂事的"负责"，就是对你未来目标的"不负责"。`,
-    actions: [
-      `优势置换：停止使用"${firstStrength}"去道歉和兜底，试着使用你的"${secondStrength}"优势，给老板发一份《当前项目资源过载风险分析报告》`,
-      `物理隔绝：在上午 10:00-11:00 彻底关闭即时通讯工具，把你的"${strengthNames[2] || '专注'}"优势留给那件"最重要但没人催"的事`,
-      `定义终点：每天下班前，用你的"${secondStrength}"优势列出明天绝对不碰的 3 件事，而不是要做的事`
-    ],
-    advantageTips: {
-      instruction: `把你的「${firstStrength}」优势关掉 50%，把「${secondStrength}」优势调高 80%。`,
-      reduce: [{
-        strength: firstStrength,
-        percentage: 50,
-        reason: '被过度使用导致决策瘫痪，需要降低接单强度'
-      }],
-      increase: [{
-        strength: secondStrength,
-        percentage: 80,
-        reason: '需要战略思维来定义"什么是重要的"'
-      }]
-    }
+    strengthManifestations: strengthNames.slice(0, 3).map((name) => {
+      const behaviors: Record<string, string> = {
+        责任: '你会默认所有事都"不能出错、不能放手"，觉得拒绝就是不负责任。别人一求助你就答应。',
+        统筹: '你会试图同时管理 5 件事以上，结果每件事都推进不超过 20%。你的待办清单越来越长，完成的事却没几件。',
+        专注: '你会盯着一件事做到底，其他事很难插进来。别人叫你你都听不见。',
+        和谐: '你会为了避免冲突而接受不合理的要求，结果自己吃亏。你会把不舒服的感觉吞下去，表面上还说"没关系"。',
+        适应: '你会根据外界变化不断调整，结果失去自己的节奏和方向。你会被别人的紧急事项牵着走。',
+      };
+      return {
+        strengthId: name,
+        behaviors: behaviors[name] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
+      };
+    }),
+    strengthInteractions: `当你的"${strengthNames[0]}"遇到"${strengthNames[1] || '统筹'}"，你会试图对所有事情负责，同时处理多个任务。你的"${strengthNames[2] || '和谐'}"让你不敢拒绝，结果你一直在忙，却始终没有一件事被真正保下来。你陷入了"接活—忙不过来—继续接活"的循环。`,
+    blindspots: `你这组优势会让你误以为"不拒绝就是负责"，但其实你早就在用"${strengthNames[0]}"回避"设立边界"了。在资源过载时，你对烂事的"负责"，就是对你真正重要目标的"不负责"。`,
+    summary: '你这组优势的核心模式：用忙碌代替边界。',
   };
 }
 
-export function generateMockResult(
+function generateDecideResponsibilityOverload(
+  _scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[]
+): DecideData {
+  const strengthDetails = strengths
+    .slice(0, 5)
+    .map((id) => ALL_STRENGTHS.find((s) => s.id === id))
+    .filter((s): s is typeof ALL_STRENGTHS[number] => s !== undefined);
+
+  const strengthNames = strengthDetails.map((s) => s.name);
+  const firstStrength = strengthNames[0] || '责任';
+  const secondStrength = strengthNames[1] || '战略';
+
+  return {
+    verdict: `现在应该用${secondStrength}替代${firstStrength}，用边界替代承担。`,
+    doMore: [
+      {
+        action: `用"${secondStrength}"优势列出明天绝对不碰的3件事`,
+        timing: '今天下班前',
+        criteria: '这3件事不做，也不会影响核心目标',
+        consequence: '否则，你明天又会自动切换回"能做的事都做"的模式，到晚上累死但核心目标零进展。',
+      },
+      {
+        action: '给老板发一份《当前项目资源过载风险分析报告》',
+        timing: '明天上午',
+        criteria: '明确提出需要削减的优先级',
+        consequence: '否则，老板会继续默认你能扛住所有事，直到你彻底崩溃。',
+      },
+      {
+        action: '在上午 10:00-11:00 彻底关闭即时通讯工具',
+        timing: '从明天开始',
+        criteria: '只留给"最重要但没人催"的那件事',
+        consequence: '否则，你会继续被所有人的紧急事项牵着走，自己的那件重要的事永远推不动。',
+      },
+    ],
+    doLess: [
+      {
+        action: `不再使用"${firstStrength}"去道歉和兜底`,
+        replacement: `用"${secondStrength}"优势定义"什么是重要的"`,
+        timing: '从下一个任务开始',
+      },
+      {
+        action: '不再接收临时的、非核心的请求',
+        replacement: '明确说"这不是我的优先级"',
+        timing: '立即',
+      },
+      {
+        action: '不再试图让所有人都满意',
+        replacement: '接受"有些人会不高兴"，这是设立边界的代价',
+        timing: '从今天开始',
+      },
+    ],
+    boundaries: [
+      {
+        responsibleFor: '你选定的核心目标的完成',
+        notResponsibleFor: '其他所有人的期待',
+      },
+      {
+        responsibleFor: '用优势发挥最大价值',
+        notResponsibleFor: '补齐所有短板',
+      },
+      {
+        responsibleFor: '说不的权利',
+        notResponsibleFor: '解释为什么不',
+      },
+    ],
+    checkRule: '判断标准：今天有没有对一件事说"不"，对一件事说"是"。',
+  };
+}
+
+// 通用的解释页生成器
+function generateGenericExplain(
   scenario: ScenarioId | string,
   strengths: StrengthId[] | string[],
-  confusion: string
-): ResultData {
-  // 检测是否是典型案例
-  const demoCase = isDemoCase(confusion, strengths);
-  
-  // 如果是典型案例，返回预设的优化方案
-  if (demoCase === 'info-overload') {
-    return generateInfoOverloadCase(scenario, strengths, confusion);
-  }
-  
-  if (demoCase === 'responsibility-overload') {
-    return generateResponsibilityOverloadCase(scenario, strengths, confusion);
-  }
-  // 获取优势名称和详细信息（使用抽取的纯函数）
+  _confusion: string
+): ExplainData {
   const strengthDetails = getStrengthDetails(strengths);
   const strengthNames = getStrengthNames(strengthDetails);
   const firstStrength = strengthNames[0] || '责任';
   const secondStrength = strengthNames[1] || '战略';
   const thirdStrength = strengthNames[2] || '分析';
-  
-  // 高光词条模板（人话版：标题|辅助说明）
-  const highlightTemplates: Record<string, string[]> = {
-    'work-decision': [
-      `停止看信息，开始做选择|把现在的混乱，收敛成一个能推进的决定。`,
-      `停止接所有事，开始选重点|把你现在的忙碌，收敛成一个能推进的方向。`,
-      `停止想所有可能，开始选一个|把你现在的犹豫，收敛成一个能推进的选择。`,
-      `停止等所有信息，开始做决定|把你现在的等待，收敛成一个能推进的行动。`,
-      `停止扛所有责任，开始选边界|把你现在的负担，收敛成一个能推进的范围。`,
-    ],
-    'career-transition': [
-      `停止比较所有赛道，开始选一个|把你现在的分析，收敛成一个能推进的方向。`,
-      `停止等所有信息，开始做选择|把你现在的犹豫，收敛成一个能推进的决定。`,
-      `停止想所有可能，开始站一边|把你现在的观望，收敛成一个能推进的立场。`,
-      `停止补所有短板，开始用优势|把你现在的焦虑，收敛成一个能推进的起点。`,
-      `停止等所有答案，开始往前走|把你现在的等待，收敛成一个能推进的行动。`,
-    ],
-    'efficiency': [
-      `停止做所有事，开始选重点|把你现在的忙碌，收敛成一个能推进的核心。`,
-      `停止用力所有地方，开始用对地方|把你现在的消耗，收敛成一个能推进的方式。`,
-      `停止硬撑所有任务，开始选边界|把你现在的透支，收敛成一个能推进的范围。`,
-      `停止等所有条件，开始做一步|把你现在的等待，收敛成一个能推进的行动。`,
-      `停止想所有方法，开始试一个|把你现在的分析，收敛成一个能推进的尝试。`,
-    ],
-    'communication': [
-      `停止解释所有事，开始说重点|把你现在的费力，收敛成一个能推进的表达。`,
-      `停止想所有说法，开始说一个|把你现在的犹豫，收敛成一个能推进的话。`,
-      `停止等所有理解，开始往前走|把你现在的等待，收敛成一个能推进的行动。`,
-      `停止证明所有点，开始做决定|把你现在的解释，收敛成一个能推进的选择。`,
-      `停止说所有话，开始说有用的话|把你现在的沟通，收敛成一个能推进的表达。`,
-    ],
-  };
-  
-  const highlights = highlightTemplates[scenario] || highlightTemplates['work-decision'];
-  const highlight = highlights[Math.floor(Math.random() * highlights.length)];
-  
-  // 智能检测优势冲突
-  const strengthConflicts = detectStrengthConflicts(strengthDetails);
-  
-  // 智能检测地下室状态
-  const strengthBasement = detectBasementStrength(scenario, strengthDetails, confusion);
-  
-  // 根据场景生成系统诊断（更精准，用人话表达优势状态）
-  const judgmentTemplates: Record<string, (s: string[], basement?: string, conflicts?: string[]) => string> = {
-    'work-decision': (s, basement, conflicts) => {
-      if (basement && conflicts && conflicts.length > 0) {
-        return `你的"${basement}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。它与你的"${s[1] || '战略'}"优势在互相拉扯——你在反复想，但没有更靠近答案。你试图用"${basement}"去扛住所有琐事，却挤压了"${s[1] || '战略'}"去梳理大局的空间。`;
-      } else if (basement) {
-        return `你的"${basement}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。被过度激活导致决策瘫痪。同时，"${s[1] || '战略'}"优势被压制，无法发挥战略思维的价值。`;
-      } else {
-        return `你的"${s[0]}"优势被过度激活，在决策场景中导致"什么都想抓住"的决策瘫痪。同时，"${s[1] || '战略'}"优势被压制，无法发挥战略思维的价值。`;
-      }
-    },
-    'career-transition': (s, basement, conflicts) => {
-      if (basement && conflicts && conflicts.length > 0) {
-        return `你的"${basement}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。它与你的"${s[1] || '战略'}"优势在互相拉扯——你在反复想，但没有更靠近答案。你试图用"${basement}"优势去填补"${s[1] || '战略'}"的空白，却导致两者都无法发挥价值。`;
-      } else if (basement) {
-        return `你的"${basement}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。你正在用它解决需要"${s[1] || '战略思维'}"优势的问题。这不是能力不足，而是优势匹配错位。`;
-      } else {
-        return `你正在用"${s[0]}"优势解决需要"${s[1] || '战略思维'}"优势的问题。这不是能力不足，而是优势匹配错位。`;
-      }
-    },
-    'efficiency': (s, basement) => {
-      if (basement) {
-        return `你的"${basement}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。你陷入"用劣势工作"的消耗循环。真正的效率问题不是时间管理，而是优势被误用了。`;
-      } else {
-        return `你的"${s[0]}"优势：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你。你陷入"用劣势工作"的消耗循环。真正的效率问题不是时间管理，而是优势被误用了。`;
-      }
-    },
-    'communication': (s, basement) => {
-      if (basement) {
-        return `你的"${basement}"优势在沟通中被误用：你现在用力的方式，正在拖累你。这个优势暂时没有在帮你，反而在消耗你，导致"费力不讨好"的困境。用"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
-      } else {
-        return `你的"${s[0]}"优势在沟通中被误用，导致"费力不讨好"的困境。用"${s[2] || s[1] || '分析'}"优势重新定义沟通方式。`;
-      }
-    },
-  };
-  
-  const judgmentGenerator = judgmentTemplates[scenario] || judgmentTemplates['work-decision'];
-  const judgment = judgmentGenerator(strengthNames, strengthBasement, strengthConflicts);
-  
-  // 固定的3条清理指令（所有场景通用）
-  const actions = [
-    `今天不再接收任何新信息\n你已经看得够多了。`,
-    `只保留一个能继续推进的选项\n不用比较，也不用证明。\n其他的，今天全部视为不存在。`,
-    `今天不解释，也不修正选择\n理解与否，不在今天处理。`,
-  ];
-  
-  // 生成优势误区（盲区）- 更强调"反直觉视角"，符合原型风格
-  const blindspotTemplates: Record<string, (_s: string[]) => string> = {
-    'work-decision': (_s) => `你不需要变得更"果断"，你需要变得更"挑剔"。你现在的焦虑不是因为你能力不足，而是因为你错误地认为"不拒绝"等同于"负责"。在当前的决策场景中，你对所有事的"负责"，就是对你真正重要目标的"不负责"。`,
-    'career-transition': (_s) => `你不需要变得更"果断"，你需要变得更"挑剔"。你现在的焦虑不是因为你能力不足，而是因为你错误地认为"不拒绝"等同于"负责"。在当前的转型期，你对烂事的"负责"，就是对你未来目标的"不负责"。`,
-    'efficiency': (s) => `你不需要变得更"快"，你需要变得更"准"。你现在的焦虑不是因为你能力不足，而是因为你错误地认为"做更多事"等同于"高效"。在当前的效率困境中，你试图提升时间管理（补短板），其实是"${s[0]}"优势被误用了。`,
-    'communication': (s) => `你不需要变得更"会说话"，你需要变得更"会选话"。你现在的焦虑不是因为你能力不足，而是因为你错误地认为"多说多解释"等同于"有效沟通"。在当前的沟通困境中，你试图提升沟通能力（补短板），但其实应该用"${s[2] || s[0]}"优势去重构沟通方式。`,
-  };
-  
-  const blindspotGenerator = blindspotTemplates[scenario] || blindspotTemplates['work-decision'];
-  const blindspot = blindspotGenerator(strengthNames);
-  
-  // 生成优势锦囊（旋钮调节式建议）- 使用 mock-rules.ts 中的纯函数
-  const advantageTips = generateAdvantageTips(
-    scenario,
-    strengthDetails,
-    strengthNames,
-    strengthBasement,
-    strengthConflicts,
-    confusion
-  );
-  
+
+  // 检测地下室状态
+  const strengthBasement = detectBasementStrength(scenario, strengthDetails, _confusion);
+
   return {
-    highlight,
-    judgment,
-    strengthConflicts: strengthConflicts.length > 0 ? strengthConflicts : undefined,
-    strengthBasement,
-    blindspot,
-    actions,
-    advantageTips,
+    strengthManifestations: strengthNames.slice(0, 3).map((name) => {
+      const behaviors: Record<string, string> = {
+        搜集: '你会不断打开新标签页，总觉得信息还不够，迟迟不肯开始做决定。每个链接都想点开看看。',
+        分析: '你会反复对比细节，试图找到"最正确"的答案，结果越比越乱。你会在两个选项之间来回切换，就是定不下来。',
+        责任: '你会默认所有事都"不能出错、不能放手"，觉得拒绝就是不负责任。别人一求助你就答应。',
+        专注: '你会盯着一件事做到底，其他事很难插进来。别人叫你你都听不见。',
+        战略: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花很多时间在"如果...会怎样"的思考上。',
+        统筹: '你会试图同时管理 5 件事以上，结果每件事都推进不超过 20%。你的待办清单越来越长，完成的事却没几件。',
+        适应: '你会根据外界变化不断调整，结果失去自己的节奏和方向。你会被别人的紧急事项牵着走。',
+        完美: '你会纠结在最后 10% 的细节上，结果 80% 的时间花在优化已经够好的东西。你会反复修改，总觉得"还不够好"。',
+        行动: '你会急于开始做事，跳过思考环节，结果做到一半发现方向错了。你会先做了再说，然后返工重来。',
+        学习: '你会想先学完所有技能再开始，结果永远在准备，从未行动。你会买很多课程，但每个都只看了开头。',
+        沟通: '你会说很多话来解释自己，结果越说越累，对方还是不理解。你会一直补充细节，觉得对方没听懂。',
+        统率: '你会直接下达指令，不考虑他人感受，结果推动时遇到阻力。你会觉得"这么简单的事为什么做不到"。',
+        和谐: '你会为了避免冲突而接受不合理的要求，结果自己吃亏。你会把不舒服的感觉吞下去，表面上还说"没关系"。',
+        体谅: '你会优先考虑拒绝是否会让他人承受情绪成本。你会为了避免让对方难受，自己扛下不该扛的事。',
+        回顾: '你会反复回想过去的错误，结果陷入自责，不敢往前走。你会经常想"当时如果...就好了"。',
+        前瞻: '你会过度担心未来的风险，结果现在的事情都不敢做。你会花很多时间设想各种最坏的情况。',
+        思维: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花大量时间在"如果...会怎样"的思考上。',
+        个别: '你会注意到每个人独特的需求和特点，结果难以用统一标准推进。你会为每个人定制方案，把自己累垮。',
+        成就: '你会不断追逐新的里程碑，结果到达后只高兴 5 分钟就开始焦虑下一个。你很难停下来享受完成的感觉。',
+        公平: '你会花大量精力确保每个人都受到同等对待，结果核心议题被边缘化。你会被"是否公平"的讨论拖住进度。',
+        包容: '你会默认每个人都有善意，结果错过明显的负面信号。你会给所有人第二次、第三次机会，直到自己被消耗殆尽。',
+      };
+      return {
+        strengthId: name,
+        behaviors: behaviors[name] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
+      };
+    }),
+    strengthInteractions: strengthBasement
+      ? `你的"${strengthBasement}"优势正在过载，它与"${secondStrength}"优势在互相拉扯。你在反复想，但没有更靠近答案。试图用"${strengthBasement}"去扛住所有，却挤压了"${secondStrength}"去梳理大局的空间。你陷入了"用力—消耗—再用力"的循环。`
+      : `当你的"${firstStrength}"遇到"${secondStrength}"，你们在用一种互相消耗的方式配合。一个想向前冲，一个想回头看，结果你们都在原地消耗，没有真正推进。你被困在了"准备—验证—再准备"的循环里。`,
+    blindspots: strengthBasement
+      ? `你这组优势会让你误以为"${strengthBasement}用对了就能解决问题"，但其实这个优势正在被误用。它本该帮助你，现在却成了你的负担。`
+      : `你这组优势会让你误以为"再用点力就能突破"，但其实你一直在用错误的方式用力。你现在的焦虑不是能力不足，而是优势被误用了。`,
+    summary: `你这组优势的核心模式：用${firstStrength}代替${secondStrength}。`,
   };
 }
 
-// 生成优势锦囊（旋钮调节式建议）已在 mock-rules.ts 中实现为纯函数
-// mock-data.ts 直接使用 mock-rules.ts 中的版本，确保可测试性
+// 通用的判定页生成器
+function generateGenericDecide(
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
+  _confusion: string
+): DecideData {
+  const strengthDetails = getStrengthDetails(strengths);
+  const strengthNames = getStrengthNames(strengthDetails);
+  const firstStrength = strengthNames[0] || '责任';
+  const secondStrength = strengthNames[1] || '战略';
+
+  return {
+    verdict: `现在应该用${secondStrength}替代${firstStrength}，用选择替代准备。`,
+    doMore: [
+      {
+        action: `用"${secondStrength}"优势选定一件事，其他的明确放弃`,
+        timing: '今天下班前',
+        criteria: '这件事做完能让你今晚睡得着觉',
+        consequence: '否则，你会继续在多个选项之间来回切换，到晚上仍然没有任何一件事推进到底。',
+      },
+      {
+        action: '定义一个"不碰清单"——列出 3 件今天绝对不做的事',
+        timing: '今天上午',
+        criteria: '这 3 件事不做，也不会影响核心目标',
+        consequence: '否则，你的时间会自动被各种"看起来重要"的事项填满，真正重要的那件事永远排不进去。',
+      },
+      {
+        action: '用"专注"优势，给选定的事情分配不受打扰的 1 小时',
+        timing: '今天下午',
+        criteria: '这 1 小时只做这件事，不切换',
+        consequence: '否则，你又会陷入"想做但没整块时间"的循环，一天下来忙忙碌碌但毫无进展。',
+      },
+    ],
+    doLess: [
+      {
+        action: `不再试图用"${firstStrength}"去解决所有问题`,
+        replacement: `用"${secondStrength}"优势重新定义问题`,
+        timing: '从下一个任务开始',
+      },
+      {
+        action: '不再等所有信息齐了再做决定',
+        replacement: '用现有信息做出最佳判断，然后推进',
+        timing: '立即',
+      },
+      {
+        action: '不再试图让所有人都满意',
+        replacement: '接受"有些人会不高兴"，这是选择的代价',
+        timing: '从今天开始',
+      },
+    ],
+    boundaries: [
+      {
+        responsibleFor: '你选定的那件事的完成',
+        notResponsibleFor: '其他事的结果',
+      },
+      {
+        responsibleFor: '做出决定并推进',
+        notResponsibleFor: '证明决定是"最正确的"',
+      },
+      {
+        responsibleFor: '用优势发挥最大价值',
+        notResponsibleFor: '补齐所有短板',
+      },
+    ],
+    checkRule: `判断标准：今天是否用${secondStrength}选定了一件事并推进到底。`,
+  };
+}
+
+// 统一的 Mock 生成入口
+export function generateMockResult(
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
+  confusion: string
+): GallupResult {
+  // 检测特殊案例类型
+  const isInfoOverload = confusion.includes('信息') || confusion.includes('搜集') || strengths.includes('搜集' as StrengthId);
+  const isResponsibilityOverload = confusion.includes('忙') || confusion.includes('多') || strengths.includes('责任' as StrengthId);
+
+  // 生成解释页
+  let explainData: ExplainData;
+  if (isInfoOverload) {
+    explainData = generateExplainInfoOverload(scenario, strengths as string[]);
+  } else if (isResponsibilityOverload) {
+    explainData = generateExplainResponsibilityOverload(scenario, strengths);
+  } else {
+    explainData = generateGenericExplain(scenario, strengths, confusion);
+  }
+
+  // 生成判定页
+  let decideData: DecideData;
+  if (isInfoOverload) {
+    decideData = generateDecideInfoOverload(scenario, strengths as string[]);
+  } else if (isResponsibilityOverload) {
+    decideData = generateDecideResponsibilityOverload(scenario, strengths);
+  } else {
+    decideData = generateGenericDecide(scenario, strengths, confusion);
+  }
+
+  return {
+    explain: explainData,
+    decide: decideData,
+  };
+}

@@ -1,11 +1,10 @@
 // AI 生成服务（统一入口）
-// 通过 feature flag 切换 Mock 和 AI 生成
+// 解释页和判定页完全分离
 
-import { ResultData } from './types';
+import { ExplainData, DecideData, GallupResult } from './types';
 import { ScenarioId, StrengthId } from './types';
-import { GALLUP_SYSTEM_PROMPT, buildUserPrompt } from './prompts';
+import { PROBLEM_LOCK_PROMPT, EXPLAIN_SYSTEM_PROMPT, DECIDE_SYSTEM_PROMPT, REFERENCE_EXAMPLE, buildUserPrompt, ExplainOutput, DecideOutput } from './prompts';
 import { generateMockResult } from './mock-data';
-import { validateAndSanitizeDiagnosis } from './verdict-validator';
 
 // ========================================
 // 环境变量配置
@@ -20,13 +19,13 @@ const AI_PROVIDER = (process.env.AI_PROVIDER || 'anthropic') as 'anthropic' | 'o
 // AI API 配置
 const getAIConfig = () => {
   const provider = AI_PROVIDER;
-  
+
   if (provider === 'anthropic') {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY 未配置。请在 .env.local 中设置 ANTHROPIC_API_KEY，或设置 ENABLE_AI=false 使用 Mock 数据');
     }
-    
+
     return {
       endpoint: 'https://api.anthropic.com/v1/messages',
       model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
@@ -34,13 +33,13 @@ const getAIConfig = () => {
       provider: 'anthropic' as const,
     };
   }
-  
+
   // openai
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY 未配置。请在 .env.local 中设置 OPENAI_API_KEY，或设置 ENABLE_AI=false 使用 Mock 数据');
   }
-  
+
   return {
     endpoint: 'https://api.openai.com/v1/chat/completions',
     model: process.env.OPENAI_MODEL || 'gpt-4o',
@@ -53,16 +52,15 @@ const getAIConfig = () => {
 const API_TIMEOUT = parseInt(process.env.API_TIMEOUT || '60000', 10);
 
 // ========================================
-// AI 生成函数
+// AI 生成函数 - 解释页
 // ========================================
 
-// 使用 Claude API 生成结果
-async function generateWithClaude(
+async function generateExplainWithClaude(
   systemPrompt: string,
   userPrompt: string
-): Promise<ResultData> {
+): Promise<ExplainData> {
   const config = getAIConfig();
-  
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
@@ -98,8 +96,7 @@ async function generateWithClaude(
     const data = await response.json();
     const content = data.content[0].text;
 
-    // 解析并验证响应
-    return parseAIResponse(content);
+    return parseExplainResponse(content);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`AI 请求超时（${API_TIMEOUT}ms），请稍后重试`);
@@ -108,13 +105,12 @@ async function generateWithClaude(
   }
 }
 
-// 使用 OpenAI API 生成结果（备用）
-async function generateWithOpenAI(
+async function generateExplainWithOpenAI(
   systemPrompt: string,
   userPrompt: string
-): Promise<ResultData> {
+): Promise<ExplainData> {
   const config = getAIConfig();
-  
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
@@ -153,8 +149,7 @@ async function generateWithOpenAI(
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    // 解析并验证响应
-    return parseAIResponse(content);
+    return parseExplainResponse(content);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`AI 请求超时（${API_TIMEOUT}ms），请稍后重试`);
@@ -163,27 +158,238 @@ async function generateWithOpenAI(
   }
 }
 
-// 解析 AI 响应
-function parseAIResponse(content: string): ResultData {
+// 解析解释页响应
+function parseExplainResponse(content: string): ExplainData {
   try {
-    // 尝试直接解析 JSON
-    const rawResult = JSON.parse(content) as ResultData & {
-      diagnosis_label?: string;
-      verdict?: string;
-      experience?: string;
-      pivot?: string;
-    };
-    
-    return validateAndSanitizeDiagnosis(rawResult);
+    const rawResult = JSON.parse(content) as ExplainOutput;
+    return rawResult;
   } catch (e) {
-    // 如果响应不是 JSON，尝试提取 JSON 部分
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const rawResult = JSON.parse(jsonMatch[0]) as ResultData;
-      return validateAndSanitizeDiagnosis(rawResult);
+      const rawResult = JSON.parse(jsonMatch[0]) as ExplainOutput;
+      return rawResult;
     }
-    
-    throw new Error('AI 返回的响应格式不正确，无法解析 JSON');
+    throw new Error('AI 返回的解释页响应格式不正确，无法解析 JSON');
+  }
+}
+
+// ========================================
+// AI 生成函数 - 判定页
+// ========================================
+
+async function generateDecideWithClaude(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<DecideData> {
+  const config = getAIConfig();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  try {
+    const response = await fetch(config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: config.model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Claude API 错误 (${response.status}): ${error}`);
+    }
+
+    const data = await response.json();
+    const content = data.content[0].text;
+
+    return parseDecideResponse(content);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`AI 请求超时（${API_TIMEOUT}ms），请稍后重试`);
+    }
+    throw error;
+  }
+}
+
+async function generateDecideWithOpenAI(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<DecideData> {
+  const config = getAIConfig();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  try {
+    const response = await fetch(config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenAI API 错误 (${response.status}): ${error}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    return parseDecideResponse(content);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`AI 请求超时（${API_TIMEOUT}ms），请稍后重试`);
+    }
+    throw error;
+  }
+}
+
+// 解析判定页响应
+function parseDecideResponse(content: string): DecideData {
+  try {
+    const rawResult = JSON.parse(content) as DecideOutput;
+    return rawResult;
+  } catch (e) {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const rawResult = JSON.parse(jsonMatch[0]) as DecideOutput;
+      return rawResult;
+    }
+    throw new Error('AI 返回的判定页响应格式不正确，无法解析 JSON');
+  }
+}
+
+// ========================================
+// 问题锁定
+// ========================================
+
+/**
+ * 锁定用户当前想解决的核心问题
+ */
+async function lockProblem(
+  scenario: string,
+  confusion: string,
+  config: ReturnType<typeof getAIConfig>
+): Promise<string> {
+  const problemLockPrompt = `场景：${scenario}
+
+用户描述的困惑：
+${confusion}
+
+请用一句话复述用户"此刻最想解决的问题"。`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  try {
+    if (config.provider === 'anthropic') {
+      const response = await fetch(config.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': config.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: 500,
+          system: PROBLEM_LOCK_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: problemLockPrompt,
+            },
+          ],
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Claude API 错误 (${response.status}): ${error}`);
+      }
+
+      const data = await response.json();
+      return data.content[0].text.trim();
+    } else {
+      // OpenAI
+      const response = await fetch(config.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: 'system',
+              content: PROBLEM_LOCK_PROMPT,
+            },
+            {
+              role: 'user',
+              content: problemLockPrompt,
+            },
+          ],
+          max_tokens: 500,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenAI API 错误 (${response.status}): ${error}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    }
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`AI 请求超时（${API_TIMEOUT}ms），请稍后重试`);
+    }
+    throw error;
   }
 }
 
@@ -204,7 +410,7 @@ export async function generateResult(
   strengths: StrengthId[],
   confusion: string,
   useAI: boolean = ENABLE_AI
-): Promise<ResultData> {
+): Promise<GallupResult> {
   // 如果未启用 AI，直接使用 Mock
   if (!useAI) {
     return generateMockResult(scenario, strengths, confusion);
@@ -221,42 +427,78 @@ export async function generateResult(
 
   // AI 生成流程
   try {
-    const systemPrompt = GALLUP_SYSTEM_PROMPT;
-    
     // 动态导入（减少初始包大小）
     const { ALL_STRENGTHS } = await import('./gallup-strengths');
     const { SCENARIOS } = await import('./scenarios');
-    
+
     const strengthNames = strengths.map(id => {
       const strength = ALL_STRENGTHS.find(s => s.id === id);
       return strength?.name || id;
     });
-    
-    const scenarioTitle = SCENARIOS.find(s => s.id === scenario)?.title || scenario;
-    const userPrompt = buildUserPrompt(strengthNames, scenarioTitle, confusion);
 
-    // 根据配置选择 AI 提供商
-    if (config.provider === 'anthropic') {
-      try {
-        return await generateWithClaude(systemPrompt, userPrompt);
-      } catch (claudeError) {
-        console.warn('Claude API 调用失败:', claudeError);
-        // 如果配置了 OpenAI API Key，尝试备用方案
-        try {
-          const openaiKey = process.env.OPENAI_API_KEY;
-          if (openaiKey) {
-            console.info('尝试使用 OpenAI 作为备用方案');
-            return await generateWithOpenAI(systemPrompt, userPrompt);
-          }
-        } catch (openaiError) {
-          console.error('OpenAI 也不可用，回退到 Mock:', openaiError);
-        }
-        throw claudeError;
-      }
-    } else {
-      // openai
-      return await generateWithOpenAI(systemPrompt, userPrompt);
+    const scenarioTitle = SCENARIOS.find(s => s.id === scenario)?.title || scenario;
+
+    // 第一步：锁定"用户当前问题"（作为后续所有内容的"问题锚点"）
+    let lockedProblem: string;
+    try {
+      lockedProblem = await lockProblem(scenarioTitle, confusion, config);
+      console.info('✓ 已锁定用户当前问题:', lockedProblem);
+    } catch (error) {
+      console.warn('问题锁定失败，将直接使用用户原始描述:', error);
+      lockedProblem = `用户问题：${confusion}`;
     }
+
+    // 第二步：使用锁定的"用户当前问题"构建用户 Prompt
+    const userPrompt = buildUserPrompt(strengthNames, scenarioTitle, confusion, lockedProblem);
+
+    // 第三步：并行生成解释页和判定页
+    // 构建完整的系统 Prompt（包含参考示例）
+    const explainSystemPrompt = `${REFERENCE_EXAMPLE}\n\n${EXPLAIN_SYSTEM_PROMPT}`;
+    const decideSystemPrompt = `${REFERENCE_EXAMPLE}\n\n${DECIDE_SYSTEM_PROMPT}`;
+
+    const [explainData, decideData] = await Promise.all([
+      (async () => {
+        if (config.provider === 'anthropic') {
+          try {
+            return await generateExplainWithClaude(explainSystemPrompt, userPrompt);
+          } catch (claudeError) {
+            console.warn('Claude API (解释页) 调用失败:', claudeError);
+            // 尝试 OpenAI 备用
+            const openaiKey = process.env.OPENAI_API_KEY;
+            if (openaiKey) {
+              console.info('尝试使用 OpenAI 作为备用方案（解释页）');
+              return await generateExplainWithOpenAI(explainSystemPrompt, userPrompt);
+            }
+            throw claudeError;
+          }
+        } else {
+          return await generateExplainWithOpenAI(explainSystemPrompt, userPrompt);
+        }
+      })(),
+      (async () => {
+        if (config.provider === 'anthropic') {
+          try {
+            return await generateDecideWithClaude(decideSystemPrompt, userPrompt);
+          } catch (claudeError) {
+            console.warn('Claude API (判定页) 调用失败:', claudeError);
+            // 尝试 OpenAI 备用
+            const openaiKey = process.env.OPENAI_API_KEY;
+            if (openaiKey) {
+              console.info('尝试使用 OpenAI 作为备用方案（判定页）');
+              return await generateDecideWithOpenAI(decideSystemPrompt, userPrompt);
+            }
+            throw claudeError;
+          }
+        } else {
+          return await generateDecideWithOpenAI(decideSystemPrompt, userPrompt);
+        }
+      })(),
+    ]);
+
+    return {
+      explain: explainData,
+      decide: decideData,
+    };
   } catch (error) {
     console.error('AI 生成失败，回退到 Mock:', error);
     return generateMockResult(scenario, strengths, confusion);
@@ -267,7 +509,7 @@ export async function generateResult(
 // 导出
 // ========================================
 
-export { GALLUP_SYSTEM_PROMPT, buildUserPrompt };
+export { EXPLAIN_SYSTEM_PROMPT, DECIDE_SYSTEM_PROMPT, buildUserPrompt };
 
 // 导出配置检查函数（用于调试）
 export function checkAIConfig(): {
@@ -277,7 +519,7 @@ export function checkAIConfig(): {
   model?: string;
 } {
   const enabled = ENABLE_AI;
-  
+
   if (!enabled) {
     return { enabled: false };
   }
