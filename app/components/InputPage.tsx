@@ -57,7 +57,7 @@ export default function InputPage({
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary px-4 sm:px-6 py-8 sm:py-12">
+    <div className="min-h-screen bg-paper-subtle bg-fixed px-4 sm:px-6 py-8 sm:py-12">
       <div className="max-w-4xl mx-auto">
         {/* 返回按钮 */}
         {onBack && (
@@ -157,22 +157,20 @@ export default function InputPage({
                 描述具体场景和感受，便于系统精准诊断
               </p>
               <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                <span className={`text-xs sm:text-sm font-medium transition-colors ${
-                  charCount > maxChars * 0.9
+                <span className={`text-xs sm:text-sm font-medium transition-colors ${charCount > maxChars * 0.9
                     ? 'text-status-warning'
                     : charCount > maxChars * 0.7
                       ? 'text-text-tertiary'
                       : 'text-text-muted'
-                }`}>
+                  }`}>
                   {charCount}/{maxChars}
                 </span>
                 <div className="w-20 sm:w-16 h-1.5 sm:h-2 bg-border-light rounded-full overflow-hidden">
                   <motion.div
-                    className={`h-full rounded-full transition-colors ${
-                      charCount > maxChars * 0.9
+                    className={`h-full rounded-full transition-colors ${charCount > maxChars * 0.9
                         ? 'bg-status-warning'
                         : 'bg-brand'
-                    }`}
+                      }`}
                     animate={{ width: `${Math.min((charCount / maxChars) * 100, 100)}%` }}
                   />
                 </div>

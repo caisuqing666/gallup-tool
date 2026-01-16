@@ -1,5 +1,24 @@
 'use client';
 
+/**
+ * @deprecated 此组件已废弃，请使用 ResultPage.tsx 替代
+ *
+ * 此组件使用旧的数据结构（ResultData），已被新的结果页（ResultPage）替代。
+ * 新的结果页使用 ExplainData 和 DecideData 分别展示"理解发生了什么"和"现在该怎么做"。
+ *
+ * @deprecated 请直接使用 ResultPage 组件，它提供了更好的用户体验和更清晰的数据结构
+ *
+ * @example
+ * // 旧用法（已废弃）
+ * import DiagnosisSection from './components/DiagnosisSection';
+ * <DiagnosisSection data={resultData} />
+ *
+ * @example
+ * // 新用法（推荐）
+ * import ResultPage from './components/ResultPage';
+ * <ResultPage explainData={explainData} decideData={decideData} />
+ */
+
 import { motion } from 'framer-motion';
 import { ResultData } from '@/lib/types';
 import { getScenarioConclusion } from '@/lib/scenario-conclusions';

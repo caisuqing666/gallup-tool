@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExplainData, DecideData, GallupResult } from '@/lib/types';
+import { ExplainData, DecideData, GallupResult, PathDecision, PATH_DECISION_LABELS, PATH_DECISION_ENERGY_STATES } from '@/lib/types';
 import Toast, { type ToastType } from './Toast';
 import { exportToImage } from '@/lib/export';
 
@@ -76,8 +76,47 @@ function ExplainPage({ data }: { data: ExplainData }) {
   );
 }
 
-// 判定页组件
+// 判定页组件 - 新中式赛博风格
 function DecidePage({ data }: { data: DecideData }) {
+  // 拆分 pathLogic 为步骤
+  const logicSteps = data.pathLogic
+    .split(/[。；，\n]/)
+    .map(step => step.trim())
+    .filter(step => step.length > 0)
+    .slice(0, 4);
+
+  // 限制行动建议最多 2 条
+  const limitedDoMore = data.doMore.slice(0, 2);
+  const limitedDoLess = data.doLess.slice(0, 2);
+  const limitedBoundaries = data.boundaries.slice(0, 2);
+
+  // 根据路径判定决定光效颜色
+  const getGlowColor = () => {
+    const glowColors = {
+      [PathDecision.DOUBLE_DOWN]: 'rgba(91, 138, 114, 0.4)',  // 绿色 - 高能量
+      [PathDecision.REFRAME]: 'rgba(184, 149, 107, 0.4)',   // 金色 - 调整中
+      [PathDecision.NARROW]: 'rgba(107, 123, 140, 0.4)',    // 蓝色 - 收敛中
+      [PathDecision.EXIT]: 'rgba(184, 90, 90, 0.4)',        // 红色 - 低能量
+    };
+    return glowColors[data.pathDecision] || glowColors[PathDecision.NARROW];
+  };
+
+  // 生成系统签名时间戳
+  const systemTimestamp = `SYSTEM_CHECK // ${new Date().toISOString().split('T')[0].replace(/-/g, '.')}`;
+
+  // 获取路径判定对应的汉字（用于水印）
+  const getVerdictChar = () => {
+    const verdictChars = {
+      [PathDecision.DOUBLE_DOWN]: '行',
+      [PathDecision.REFRAME]: '易',
+      [PathDecision.NARROW]: '敛',
+      [PathDecision.EXIT]: '止',
+    };
+    return verdictChars[data.pathDecision] || '断';
+  };
+
+  const reframedInsight = data.reframedInsight;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -85,8 +124,8 @@ function DecidePage({ data }: { data: DecideData }) {
       className="space-y-6"
     >
       {/* 页面标题 */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2 font-serif">
           现在该怎么做
         </h1>
         <p className="text-text-secondary text-sm">
@@ -94,130 +133,249 @@ function DecidePage({ data }: { data: DecideData }) {
         </p>
       </div>
 
-      {/* 核心判词 */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-text-primary text-white rounded-2xl p-6 sm:p-8 shadow-lg"
-      >
-        <div className="text-[10px] text-accent uppercase tracking-wider font-medium mb-4">
-          优势使用判定
-        </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">
-          {data.verdict}
-        </h2>
-      </motion.section>
-
-      {/* 更应该做什么 */}
-      {data.doMore.length > 0 && (
+      {/* 复述式理解（高亮） */}
+      {reframedInsight && (
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-brand/5 border-l-4 border-brand rounded-r-2xl p-6"
+          className="bg-brand/10 border-l-4 border-brand rounded-2xl p-6"
         >
-          <h2 className="text-lg font-semibold text-brand mb-4">✓ 更应该做</h2>
-          <div className="space-y-4">
-            {data.doMore.map((item, index) => (
-              <div key={index} className="bg-white rounded-xl p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    ✓
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-text-primary font-medium mb-1">{item.action}</p>
-                    <div className="flex flex-wrap gap-2 text-xs text-text-muted mb-2">
-                      <span className="bg-bg-secondary px-2 py-1 rounded">
-                        时机：{item.timing}
-                      </span>
-                      <span className="bg-bg-secondary px-2 py-1 rounded">
-                        标准：{item.criteria}
-                      </span>
+          <p className="text-text-primary text-lg sm:text-xl font-semibold leading-relaxed">
+            {reframedInsight}
+          </p>
+        </motion.section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          判定核心区 - 两列布局（桌面端）
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 左列：判定卡片 + 判断规则（占 2/3） */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* 判定卡片 - 金缮黑盒风格 */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative bg-text-primary text-white rounded-2xl p-6 sm:p-8 shadow-lg overflow-hidden"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+            }}
+          >
+            {/* 巨大水印 */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+              <span className="text-[12rem] font-serif font-bold select-none">
+                {getVerdictChar()}
+              </span>
+            </div>
+
+            {/* 呼吸光效边框 */}
+            <div className="absolute inset-0 rounded-2xl animate-glow-pulse" style={{
+              boxShadow: `inset 0 0 60px ${getGlowColor()}`,
+            }} />
+
+            {/* 判定对象标签 */}
+            <div className="mb-6 relative z-10">
+              <span className="inline-block px-3 py-1 bg-accent/20 border border-accent/40 rounded-full text-xs font-medium text-accent font-mono">
+                判定针对：{data.problemFocus || '当前困境'}
+              </span>
+            </div>
+
+            {/* 主标题：超大衬线体 */}
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-4 relative z-10 font-serif tracking-tight">
+              {PATH_DECISION_LABELS[data.pathDecision]}
+            </h2>
+
+            {/* 副标题：能量态说明 */}
+            <p className="text-accent/90 text-base mb-6 relative z-10 font-mono text-sm">
+              {PATH_DECISION_ENERGY_STATES[data.pathDecision]}
+            </p>
+
+            {/* 判断规则 */}
+            <div className="border-t border-white/20 pt-4 mt-4 relative z-10">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-accent/90 text-sm font-medium mb-1">今日自检</p>
+                  <p className="text-white/80 text-sm">{data.checkRule}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 系统签名时间戳 */}
+            <div className="absolute bottom-4 right-6 text-xs font-mono text-white/30">
+              {systemTimestamp}
+            </div>
+          </motion.section>
+
+          {/* 路径推导链条 - 数据流脉络图风格 */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="bg-text-primary/5 backdrop-blur-sm border border-border-light rounded-2xl p-6 relative overflow-hidden"
+          >
+            {/* 背景磨砂玻璃效果 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none" />
+
+            <h3 className="text-base font-semibold text-text-primary mb-6 flex items-center gap-2 relative z-10 font-serif">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              路径推导链条
+            </h3>
+
+            {/* 脉络图：垂直连线 + 节点 */}
+            <div className="space-y-0 relative z-10">
+              {logicSteps.map((step, index) => (
+                <div key={index} className="relative">
+                  {/* 垂直连线（除了最后一个） */}
+                  {index < logicSteps.length - 1 && (
+                    <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gradient-to-b from-border-dark to-transparent" />
+                  )}
+
+                  {/* 节点 + 内容 */}
+                  <div className="flex items-start gap-4 pb-6">
+                    {/* 节点：空心圆圈 */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full border-2 border-brand bg-white flex items-center justify-center animate-circuit-power" style={{ animationDelay: `${index * 0.15}s` }}>
+                        <div className="w-2 h-2 rounded-full bg-brand" />
+                      </div>
                     </div>
-                    <p className="text-status-error text-sm font-medium">
-                      否则，{item.consequence}
-                    </p>
+
+                    {/* 步骤内容 */}
+                    <p className="text-text-secondary text-sm leading-relaxed flex-1 pt-0.5">{step}</p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-      )}
+              ))}
+            </div>
+          </motion.section>
 
-      {/* 更应该少做 */}
-      {data.doLess.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-status-error/5 border-l-4 border-status-error rounded-r-2xl p-6"
-        >
-          <h2 className="text-lg font-semibold text-status-error mb-4">✕ 更应该少做</h2>
-          <div className="space-y-4">
-            {data.doLess.map((item, index) => (
-              <div key={index} className="bg-white rounded-xl p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-status-error text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    ✕
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-text-primary font-medium mb-1">{item.action}</p>
-                    <p className="text-text-secondary text-sm mb-2">替代：{item.replacement}</p>
-                    <span className="text-xs text-text-muted bg-bg-secondary px-2 py-1 rounded inline-block">
-                      从：{item.timing}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* 责任边界 */}
-      {data.boundaries.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-domain-strategic/5 border border-domain-strategic/20 rounded-2xl p-6"
-        >
-          <h2 className="text-lg font-semibold text-text-primary mb-4">责任边界</h2>
-          <div className="space-y-3">
-            {data.boundaries.map((item, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className="flex-1 bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-text-secondary text-sm">
-                    <span className="text-brand font-medium">负责：</span>{item.responsibleFor}
-                  </p>
-                  <p className="text-text-secondary text-sm mt-1">
-                    <span className="text-status-error font-medium">不负责：</span>{item.notResponsibleFor}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* 用对力判断规则 */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-accent/10 border border-accent/30 rounded-2xl p-6"
-      >
-        <div className="flex items-start gap-3">
-          <svg className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="flex-1">
-            <p className="text-text-primary font-medium mb-1">用对力判断规则</p>
-            <p className="text-text-secondary text-sm">{data.checkRule}</p>
-          </div>
+          {/* 补充证据 - 弱化样式 */}
+          {data.pathReason && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-bg-card rounded-xl border border-border-light p-5"
+            >
+              <h3 className="text-sm font-medium text-text-muted mb-2">补充证据</h3>
+              <p className="text-text-secondary text-sm leading-relaxed">{data.pathReason}</p>
+            </motion.section>
+          )}
         </div>
-      </motion.section>
+
+        {/* ═══════════════════════════════════════════════════════════
+            右列：行动执行区（占 1/3）
+        ═══════════════════════════════════════════════════════════ */}
+        <div className="space-y-6">
+          {/* 更应该做 - 处方签/增益芯片风格 */}
+          {limitedDoMore.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="relative bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl p-5 border-2 border-accent/30 overflow-hidden"
+            >
+              {/* 渐变边框光效 */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent/20 via-transparent to-accent/20 opacity-50 pointer-events-none" />
+
+              <h3 className="text-base font-bold text-text-primary mb-4 flex items-center gap-2 relative z-10 font-serif">
+                <svg className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                </svg>
+                必须发生的关键动作
+              </h3>
+              <div className="space-y-3 relative z-10">
+                {limitedDoMore.map((item, index) => (
+                  <div key={index} className="bg-white/80 backdrop-blur rounded-lg p-4 border border-accent/20 shadow-sm">
+                    <p className="text-text-primary font-medium mb-2">{item.action}</p>
+                    <p className="text-text-secondary text-xs mb-1 font-mono">⏰ {item.timing}</p>
+                    <p className="text-text-secondary text-xs">✓ {item.criteria}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* 更应该少做 - 封条/禁令卡风格 */}
+          {limitedDoLess.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative bg-gradient-to-br from-status-error/10 to-status-error/5 rounded-2xl p-5 border-2 border-status-error/30 overflow-hidden"
+            >
+              {/* 渐变边框光效 */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-status-error/20 via-transparent to-status-error/20 opacity-50 pointer-events-none" />
+
+              <h3 className="text-base font-bold text-text-primary mb-4 flex items-center gap-2 relative z-10 font-serif">
+                <svg className="w-5 h-5 text-status-error" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+                </svg>
+                必须停止的关键动作
+              </h3>
+              <div className="space-y-3 relative z-10">
+                {limitedDoLess.map((item, index) => (
+                  <div key={index} className="bg-white/80 backdrop-blur rounded-lg p-4 border border-status-error/20 shadow-sm relative overflow-hidden">
+                    {/* 删除线动效 */}
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-status-error/50 animate-strike-through" style={{ animationDelay: `${index * 0.1}s` }} />
+
+                    <p className="text-text-primary font-medium mb-1 line-through decoration-status-error/50 decoration-2">{item.action}</p>
+                    <p className="text-text-secondary text-xs relative z-10">→ {item.replacement}</p>
+                    <p className="text-text-muted text-xs mt-1 font-mono">从：{item.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          责任边界 - 天平对照表风格（不折叠、左右对照）
+      ═══════════════════════════════════════════════════════════ */}
+      {limitedBoundaries.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-bg-card rounded-2xl border border-border-light p-6"
+        >
+          <h3 className="text-base font-semibold text-text-primary mb-6 flex items-center gap-2 font-serif">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+            责任边界
+          </h3>
+
+          {/* 天平对照表：左右布局 */}
+          <div className="space-y-4">
+            {limitedBoundaries.map((item, index) => (
+              <div key={index} className="relative">
+                {/* 中心分隔线 */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border-light" />
+
+                {/* 左右对照 */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* 左侧：负责 */}
+                  <div className="bg-bg-secondary rounded-lg p-4 text-right pr-6">
+                    <p className="text-xs text-text-muted mb-2 font-mono uppercase tracking-wide">负责</p>
+                    <p className="text-text-secondary text-sm font-medium">{item.responsibleFor}</p>
+                  </div>
+
+                  {/* 右侧：不负责 */}
+                  <div className="bg-bg-secondary rounded-lg p-4 text-left pl-6">
+                    <p className="text-xs text-text-muted mb-2 font-mono uppercase tracking-wide">不负责</p>
+                    <p className="text-text-secondary text-sm font-medium">{item.notResponsibleFor}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
     </motion.div>
   );
 }

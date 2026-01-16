@@ -160,7 +160,7 @@ export function getStrengthDetails(
 ): readonly (typeof ALL_STRENGTHS[number])[] {
   return strengthIds
     .slice(0, 5)
-    .map(id => ALL_STRENGTHS.find(s => s.id === id))
+    .map(id => ALL_STRENGTHS.find(s => s.id === id) || ALL_STRENGTHS.find(s => s.name === id))
     .filter((s): s is typeof ALL_STRENGTHS[number] => s !== undefined);
 }
 

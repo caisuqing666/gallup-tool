@@ -1,6 +1,22 @@
 /**
+ * @deprecated 整个流水线模块已废弃
+ *
+ * 此目录包含早期实验性的"报告流水线"代码，已被"困惑判定工具"替代。
+ *
+ * 产品当前定位是"困惑判定工具"，主要代码位于：
+ *   - lib/ai-generate.ts: AI 生成服务（统一入口）
+ *   - lib/context-generator.ts: 上下文生成器
+ *   - lib/confusion-parser.ts: 困惑解析器
+ *
+ * 此流水线代码保留用于参考，可能在未来版本中完全移除。
+ *
+ * @deprecated 请使用 lib/ai-generate.ts 替代
+ */
+
+/**
  * 流水线入口文件
  * 导出所有公共接口
+ * @deprecated
  */
 
 export type {

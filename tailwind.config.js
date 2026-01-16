@@ -67,6 +67,7 @@ module.exports = {
       fontFamily: {
         serif: ['"Noto Serif SC"', '"Source Serif Pro"', '"Songti SC"', 'Georgia', 'serif'],
         sans: ['"Inter"', '"Noto Sans SC"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"Fira Code"', '"SF Mono"', 'Monaco', 'Consolas', 'monospace'],
       },
       fontSize: {
         // 标题系统
@@ -120,6 +121,10 @@ module.exports = {
         'slide-in-right': 'slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+        'circuit-power': 'circuitPower 1.5s ease-out forwards',
+        'strike-through': 'strikeThrough 0.5s ease-out forwards',
+        'float-gentle': 'floatGentle 6s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -149,6 +154,23 @@ module.exports = {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(107,91,77,0.3), 0 0 40px rgba(107,91,77,0.1)' },
+          '50%': { boxShadow: '0 0 30px rgba(107,91,77,0.5), 0 0 60px rgba(107,91,77,0.2)' },
+        },
+        circuitPower: {
+          '0%': { opacity: '0', filter: 'brightness(0.5)' },
+          '50%': { opacity: '1', filter: 'brightness(1.2)' },
+          '100%': { opacity: '1', filter: 'brightness(1)' },
+        },
+        strikeThrough: {
+          '0%': { width: '0' },
+          '100%': { width: '100%' },
+        },
+        floatGentle: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
       transitionTimingFunction: {

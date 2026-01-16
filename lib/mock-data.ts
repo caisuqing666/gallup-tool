@@ -1,7 +1,13 @@
 // Mock 数据生成器（用于演示）
 // 解释页和判定页完全分离
+// 
+// 数据流管道：
+// confusion-parser（困惑结构化）
+//   → strength-profiles + combo-rules（优势画像+组合规则）
+//   → context-generator（生成上下文用于回归）
+//   → prompts（把上下文打包进 AI 并用失败自检锁死）
 
-import { GallupResult, ExplainData, DecideData } from './types';
+import { GallupResult, ExplainData, DecideData, ProblemType, ProblemFocus, PathDecision } from './types';
 import { ALL_STRENGTHS, StrengthId } from './gallup-strengths';
 import { ScenarioId } from './scenarios';
 import {
@@ -11,17 +17,32 @@ import {
   getStrengthNames,
   DOMAIN_CONFLICTS,
 } from './mock-rules';
+import {
+  buildAnalysisContext,
+  generateResultFromContext,
+  AnalysisContext,
+} from './context-generator';
+import { parseConfusion } from './confusion-parser';
+import { getStrengthProfiles, type StrengthProfile } from './strength-profiles';
 
 // 重新导出规则函数，保持向后兼容
 export { detectStrengthConflicts, detectBasementStrength, DOMAIN_CONFLICTS };
+
+// 导出 AnalysisContext 类型供外部使用
+export type { AnalysisContext };
 
 // 典型案例1："信息黑洞"（搜集+分析+责任）
 function generateExplainInfoOverload(
   _scenario: string,
   strengths: string[]
 ): ExplainData {
+  const strengthDetails = getStrengthDetails(strengths);
+  const strengthNames = getStrengthNames(strengthDetails);
+  const profiles = getStrengthProfiles(strengthDetails.map(s => s.id));
+  const profileMap = new Map(profiles.map(profile => [profile.name, profile]));
+
   return {
-    strengthManifestations: strengths.slice(0, 3).map((id) => {
+    strengthManifestations: strengthNames.slice(0, 3).map((name) => {
       const behaviors: Record<string, string> = {
         搜集: '你会不断打开新标签页，总觉得信息还不够，迟迟不肯开始做决定。每个链接都想点开看看。',
         分析: '你会反复对比细节，试图找到"最正确"的答案，结果越比越乱。你会在两个选项之间来回切换，就是定不下来。',
@@ -30,13 +51,14 @@ function generateExplainInfoOverload(
         战略: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花很多时间在"如果...会怎样"的思考上。',
         统筹: '你会试图同时管理 5 件事以上，结果每件事都推进不超过 20%。你的待办清单越来越长，完成的事却没几件。',
       };
+      const profile = profileMap.get(name);
       return {
-        strengthId: id,
-        behaviors: behaviors[id] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
+        strengthId: name,
+        behaviors: behaviors[name] || (profile ? buildStrengthBehavior(profile, '信息过载') : '你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。'),
       };
     }),
-    strengthInteractions: `当你的"${strengths[0]}"遇到"${strengths[1]}"，你会先拼命收集所有信息，然后一头扎进细节反复分析。你的"${strengths[2] || '责任'}"让你害怕做错决定，结果你越准备越焦虑。你陷入了"收集—分析—再收集"的循环，永远觉得还不够。`,
-    blindspots: `你这组优势会让你误以为"再多看一点就能做决定"，但其实你早就在用"${strengths[0]}"逃避"选择"了。信息够不够根本不是问题，问题是你不敢选。`,
+    strengthInteractions: `当你的"${strengthNames[0] || '搜集'}"遇到"${strengthNames[1] || '分析'}"，你会先拼命收集所有信息，然后一头扎进细节反复分析。你的"${strengthNames[2] || '责任'}"让你害怕做错决定，结果你越准备越焦虑。你陷入了"收集—分析—再收集"的循环，永远觉得还不够。`,
+    blindspots: `你这组优势会让你误以为"再多看一点就能做决定"，但其实你早就在用"${strengthNames[0] || '搜集'}"逃避"选择"了。信息够不够根本不是问题，问题是你不敢选。`,
     summary: '你这组优势的核心模式：用准备代替选择。',
   };
 }
@@ -45,8 +67,13 @@ function generateDecideInfoOverload(
   _scenario: string,
   strengths: string[]
 ): DecideData {
+  const strengthList = strengths.slice(0, 3).join('×');
   return {
-    verdict: `现在应该用专注替代搜集，用选择替代准备。`,
+    pathDecision: PathDecision.NARROW,
+    problemFocus: '如何在信息过载的情况下做出选择？',
+    reframedInsight: '你并不是缺信息，而是一直在等一个“绝对确定”的答案，结果每一次犹豫都在把行动往后推。',
+    pathLogic: `基于你的「${strengthList}」优势组合，在「信息过载无法决策」的情境下，继续使用原有模式会导致「优势在多个方向上同时激活，能量被分散消耗，每件事都推进不彻底」的能量损耗，所以此刻最优路径是「阶段性收敛（Narrow）」，并且在满足「选定一件事并推进到底，其他的明确说'不'」条件时，可以直接行动。`,
+    pathReason: `你的优势在多个方向上被激活，能量被分散消耗。需要先缩小战场，选定一件事并推进到底，其他的明确说"不"。如果继续在所有方向上同时推进，只会让你在每件事上都推进不彻底，最后什么都没完成。`,
     doMore: [
       {
         action: '每天下午 3 点后，不再接收任何新信息',
@@ -107,12 +134,11 @@ function generateExplainResponsibilityOverload(
   _scenario: ScenarioId | string,
   strengths: StrengthId[] | string[]
 ): ExplainData {
-  const strengthDetails = strengths
-    .slice(0, 5)
-    .map((id) => ALL_STRENGTHS.find((s) => s.id === id))
-    .filter((s): s is typeof ALL_STRENGTHS[number] => s !== undefined);
+  const strengthDetails = getStrengthDetails(strengths);
 
   const strengthNames = strengthDetails.map((s) => s.name);
+  const profiles = getStrengthProfiles(strengthDetails.map(s => s.id));
+  const profileMap = new Map(profiles.map(profile => [profile.name, profile]));
 
   return {
     strengthManifestations: strengthNames.slice(0, 3).map((name) => {
@@ -123,9 +149,10 @@ function generateExplainResponsibilityOverload(
         和谐: '你会为了避免冲突而接受不合理的要求，结果自己吃亏。你会把不舒服的感觉吞下去，表面上还说"没关系"。',
         适应: '你会根据外界变化不断调整，结果失去自己的节奏和方向。你会被别人的紧急事项牵着走。',
       };
+      const profile = profileMap.get(name);
       return {
         strengthId: name,
-        behaviors: behaviors[name] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
+        behaviors: behaviors[name] || (profile ? buildStrengthBehavior(profile, '责任过载') : '你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。'),
       };
     }),
     strengthInteractions: `当你的"${strengthNames[0]}"遇到"${strengthNames[1] || '统筹'}"，你会试图对所有事情负责，同时处理多个任务。你的"${strengthNames[2] || '和谐'}"让你不敢拒绝，结果你一直在忙，却始终没有一件事被真正保下来。你陷入了"接活—忙不过来—继续接活"的循环。`,
@@ -148,7 +175,11 @@ function generateDecideResponsibilityOverload(
   const secondStrength = strengthNames[1] || '战略';
 
   return {
-    verdict: `现在应该用${secondStrength}替代${firstStrength}，用边界替代承担。`,
+    pathDecision: PathDecision.REFRAME,
+    problemFocus: '如何在承担多件事时避免自己过载？',
+    reframedInsight: '你并不是做得不够，而是把“不能让别人失望”当成底线，结果自己始终没有被放进优先级里。',
+    pathLogic: `基于你的「${firstStrength}×${secondStrength}」优势组合，在「边界与责任过载」的情境下，继续使用原有模式会导致「用"${firstStrength}"过度承担所有责任，掉入该优势的代价区，长期被榨干能量」的能量损耗，所以此刻最优路径是「结构性调整（Reframe）」，并且在满足「用"${secondStrength}"重新定义角色和边界，在保持投入的同时改变使用优势的方式」条件时，可以直接行动。`,
+    pathReason: `你用"${firstStrength}"伤害自己——事情本身未必错，但使用方式在榨干能量。需要换使用方式（建立边界），而不是换路径。用"${secondStrength}"优势重新定义角色和边界，在保持投入的同时改变使用优势的方式。`,
     doMore: [
       {
         action: `用"${secondStrength}"优势列出明天绝对不碰的3件事`,
@@ -211,44 +242,21 @@ function generateGenericExplain(
   _confusion: string
 ): ExplainData {
   const strengthDetails = getStrengthDetails(strengths);
+  const profiles = getStrengthProfiles(strengthDetails.map(s => s.id));
+  const confusionProfile = parseConfusion(_confusion);
+  const problemFocus = confusionProfile.problemFocus || '当前困惑';
   const strengthNames = getStrengthNames(strengthDetails);
   const firstStrength = strengthNames[0] || '责任';
   const secondStrength = strengthNames[1] || '战略';
-  const thirdStrength = strengthNames[2] || '分析';
 
   // 检测地下室状态
   const strengthBasement = detectBasementStrength(scenario, strengthDetails, _confusion);
 
   return {
-    strengthManifestations: strengthNames.slice(0, 3).map((name) => {
-      const behaviors: Record<string, string> = {
-        搜集: '你会不断打开新标签页，总觉得信息还不够，迟迟不肯开始做决定。每个链接都想点开看看。',
-        分析: '你会反复对比细节，试图找到"最正确"的答案，结果越比越乱。你会在两个选项之间来回切换，就是定不下来。',
-        责任: '你会默认所有事都"不能出错、不能放手"，觉得拒绝就是不负责任。别人一求助你就答应。',
-        专注: '你会盯着一件事做到底，其他事很难插进来。别人叫你你都听不见。',
-        战略: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花很多时间在"如果...会怎样"的思考上。',
-        统筹: '你会试图同时管理 5 件事以上，结果每件事都推进不超过 20%。你的待办清单越来越长，完成的事却没几件。',
-        适应: '你会根据外界变化不断调整，结果失去自己的节奏和方向。你会被别人的紧急事项牵着走。',
-        完美: '你会纠结在最后 10% 的细节上，结果 80% 的时间花在优化已经够好的东西。你会反复修改，总觉得"还不够好"。',
-        行动: '你会急于开始做事，跳过思考环节，结果做到一半发现方向错了。你会先做了再说，然后返工重来。',
-        学习: '你会想先学完所有技能再开始，结果永远在准备，从未行动。你会买很多课程，但每个都只看了开头。',
-        沟通: '你会说很多话来解释自己，结果越说越累，对方还是不理解。你会一直补充细节，觉得对方没听懂。',
-        统率: '你会直接下达指令，不考虑他人感受，结果推动时遇到阻力。你会觉得"这么简单的事为什么做不到"。',
-        和谐: '你会为了避免冲突而接受不合理的要求，结果自己吃亏。你会把不舒服的感觉吞下去，表面上还说"没关系"。',
-        体谅: '你会优先考虑拒绝是否会让他人承受情绪成本。你会为了避免让对方难受，自己扛下不该扛的事。',
-        回顾: '你会反复回想过去的错误，结果陷入自责，不敢往前走。你会经常想"当时如果...就好了"。',
-        前瞻: '你会过度担心未来的风险，结果现在的事情都不敢做。你会花很多时间设想各种最坏的情况。',
-        思维: '你会在任务尚未成型前，先试图把所有变量想清楚。你会花大量时间在"如果...会怎样"的思考上。',
-        个别: '你会注意到每个人独特的需求和特点，结果难以用统一标准推进。你会为每个人定制方案，把自己累垮。',
-        成就: '你会不断追逐新的里程碑，结果到达后只高兴 5 分钟就开始焦虑下一个。你很难停下来享受完成的感觉。',
-        公平: '你会花大量精力确保每个人都受到同等对待，结果核心议题被边缘化。你会被"是否公平"的讨论拖住进度。',
-        包容: '你会默认每个人都有善意，结果错过明显的负面信号。你会给所有人第二次、第三次机会，直到自己被消耗殆尽。',
-      };
-      return {
-        strengthId: name,
-        behaviors: behaviors[name] || `你会过度依赖这个优势，在当前场景中用力过猛，反而形成阻碍。`,
-      };
-    }),
+    strengthManifestations: profiles.slice(0, 3).map((profile) => ({
+      strengthId: profile.name,
+      behaviors: buildStrengthBehavior(profile, problemFocus),
+    })),
     strengthInteractions: strengthBasement
       ? `你的"${strengthBasement}"优势正在过载，它与"${secondStrength}"优势在互相拉扯。你在反复想，但没有更靠近答案。试图用"${strengthBasement}"去扛住所有，却挤压了"${secondStrength}"去梳理大局的空间。你陷入了"用力—消耗—再用力"的循环。`
       : `当你的"${firstStrength}"遇到"${secondStrength}"，你们在用一种互相消耗的方式配合。一个想向前冲，一个想回头看，结果你们都在原地消耗，没有真正推进。你被困在了"准备—验证—再准备"的循环里。`,
@@ -259,11 +267,18 @@ function generateGenericExplain(
   };
 }
 
+function buildStrengthBehavior(profile: StrengthProfile, problemFocus: string): string {
+  const focus = problemFocus ? `在「${problemFocus}」上，` : '';
+  const basement = profile.basement.replace(/；/g, '。');
+  const cost = profile.cost.split('，')[0];
+  return `${focus}你的「${profile.name}」会${basement}这让你更容易${cost}。`;
+}
+
 // 通用的判定页生成器
 function generateGenericDecide(
   scenario: ScenarioId | string,
   strengths: StrengthId[] | string[],
-  _confusion: string
+  confusion: string
 ): DecideData {
   const strengthDetails = getStrengthDetails(strengths);
   const strengthNames = getStrengthNames(strengthDetails);
@@ -271,7 +286,11 @@ function generateGenericDecide(
   const secondStrength = strengthNames[1] || '战略';
 
   return {
-    verdict: `现在应该用${secondStrength}替代${firstStrength}，用选择替代准备。`,
+    pathDecision: PathDecision.NARROW,
+    problemFocus: confusion.length > 10 ? `要不要${confusion.slice(0, 15)}` : '要不要改变现状',
+    reframedInsight: '你并不是不想推进，而是把“还没准备好”当成安全感，结果行动一直停在原地。',
+    pathLogic: `基于你的「${firstStrength}×${secondStrength}」优势组合，在当前情境下，继续使用原有模式会导致「优势过度发散，能量被分散消耗，每件事都推进不彻底」的能量损耗，所以此刻最优路径是「阶段性收敛（Narrow）」，并且在满足「用"${secondStrength}"优势选定一件事并推进到底，其他的明确放弃」条件时，可以直接行动。`,
+    pathReason: `你的优势过度发散，能量被分散消耗。需要缩小战场，用"${secondStrength}"优势选定一件事并推进到底，其他的明确放弃。如果继续在所有方向上同时推进，只会让你在每件事上都推进不彻底，最后什么都没完成。`,
     doMore: [
       {
         action: `用"${secondStrength}"优势选定一件事，其他的明确放弃`,
@@ -331,8 +350,29 @@ function generateGenericDecide(
 export function generateMockResult(
   scenario: ScenarioId | string,
   strengths: StrengthId[] | string[],
-  confusion: string
+  confusion: string,
+  problemType?: ProblemType,
+  problemFocus?: ProblemFocus,
+  useNewPipeline: boolean = true  // 开关：是否使用新的数据流管道
 ): GallupResult {
+  // ═══════════════════════════════════════════════════════════
+  // 新数据流管道（推荐）
+  // confusion-parser → strength-profiles → combo-rules → context-generator
+  // ═══════════════════════════════════════════════════════════
+  if (useNewPipeline) {
+    try {
+      const ctx = buildAnalysisContext(scenario, strengths as StrengthId[], confusion);
+      return generateResultFromContext(ctx);
+    } catch (e) {
+      // 如果新管道出错，回退到旧逻辑
+      console.warn('新数据流管道出错，回退到旧逻辑:', e);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 旧逻辑（保持向后兼容）
+  // ═══════════════════════════════════════════════════════════
+  
   // 检测特殊案例类型
   const isInfoOverload = confusion.includes('信息') || confusion.includes('搜集') || strengths.includes('搜集' as StrengthId);
   const isResponsibilityOverload = confusion.includes('忙') || confusion.includes('多') || strengths.includes('责任' as StrengthId);
@@ -361,4 +401,29 @@ export function generateMockResult(
     explain: explainData,
     decide: decideData,
   };
+}
+
+
+/**
+ * 获取完整的分析上下文（供 AI 生成和调试使用）
+ */
+export function getAnalysisContext(
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
+  confusion: string
+): AnalysisContext {
+  return buildAnalysisContext(scenario, strengths as StrengthId[], confusion);
+}
+
+/**
+ * 使用新数据流管道生成结果（明确调用）
+ */
+export function generatePersonalizedMockResult(
+  scenario: ScenarioId | string,
+  strengths: StrengthId[] | string[],
+  confusion: string
+): { result: GallupResult; context: AnalysisContext } {
+  const context = buildAnalysisContext(scenario, strengths as StrengthId[], confusion);
+  const result = generateResultFromContext(context);
+  return { result, context };
 }

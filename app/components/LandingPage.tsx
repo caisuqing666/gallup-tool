@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { PathId, PATH_DESCRIPTIONS } from '@/lib/types';
+import { isPathImplemented } from '@/lib/path-config';
 
 interface LandingPageProps {
-  onStart: () => void;
+  onSelectPath: (pathId: PathId) => void;
 }
 
-export default function LandingPage({ onStart }: LandingPageProps) {
+// 路径卡片顺序（按照用户需求排列）
+const PATH_ORDER: PathId[] = [
+  'report-interpret',  // 我不太懂这份报告
+  'career-match',      // 我想找到适合的职业方向
+  'breakthrough',      // 我遇到了具体问题
+  'strength-guide',    // 我想更好地发挥自己
+];
+
+export default function LandingPage({ onSelectPath }: LandingPageProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -23,13 +33,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col">
+    <div className="min-h-screen bg-paper-subtle bg-fixed flex flex-col">
       {/* 顶部装饰线 */}
       <div className="h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
 
       {/* 主内容区 */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-16 md:py-24">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           {/* 品牌标签 */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -47,7 +57,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-text-primary mb-4 sm:mb-6 tracking-tight leading-[1.1] px-2"
+            className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary mb-4 sm:mb-6 tracking-tight leading-[1.1] px-2"
           >
             盖洛普优势
             <br />
@@ -59,54 +69,70 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="text-base sm:text-lg md:text-xl text-text-tertiary mb-8 sm:mb-12 max-w-xl mx-auto leading-relaxed px-4"
+            className="text-base sm:text-lg md:text-xl text-text-tertiary mb-10 sm:mb-14 max-w-xl mx-auto leading-relaxed px-4"
           >
-            以温润的洞察，将你的天赋解码为
-            <span className="text-brand font-medium mx-1">精准可执行</span>
-            的决策锦囊
+            选择你想要的帮助方式
           </motion.p>
 
-          {/* 主按钮 */}
+          {/* 4入口卡片 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-3xl mx-auto"
           >
-            <button
-              onClick={onStart}
-              className="btn-primary w-full sm:w-auto px-8 sm:px-12"
-            >
-              开始探索
-            </button>
-          </motion.div>
+            {PATH_ORDER.map((pathId, index) => {
+              const pathInfo = PATH_DESCRIPTIONS[pathId];
+              const isImplemented = isPathImplemented(pathId);
 
-          {/* 特性指标 */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="mt-12 sm:mt-16 md:mt-20 flex items-center justify-center gap-6 sm:gap-8 md:gap-16"
-          >
-            {[
-              { value: '34', label: '项优势' },
-              { value: 'AI', label: '智能驱动' },
-              { value: '4', label: '大领域' },
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-text-primary mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-text-muted tracking-wide">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
+              return (
+                <motion.button
+                  key={pathId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                  onClick={() => isImplemented && onSelectPath(pathId)}
+                  disabled={!isImplemented}
+                  className={`
+                    relative p-6 sm:p-8 rounded-2xl text-left transition-all duration-300
+                    ${isImplemented
+                      ? 'bg-white/80 hover:bg-white hover:shadow-lg hover:scale-[1.02] cursor-pointer border border-gray-100 hover:border-brand/30'
+                      : 'bg-gray-50/50 cursor-not-allowed border border-gray-100 opacity-60'
+                    }
+                  `}
+                >
+                  {/* 图标 */}
+                  <div className="text-3xl sm:text-4xl mb-4">
+                    {pathInfo.icon}
+                  </div>
+
+                  {/* 标题 */}
+                  <h3 className={`
+                    text-lg sm:text-xl font-bold mb-2
+                    ${isImplemented ? 'text-text-primary' : 'text-text-muted'}
+                  `}>
+                    {pathInfo.title}
+                  </h3>
+
+                  {/* 副标题 */}
+                  <p className={`
+                    text-sm sm:text-base
+                    ${isImplemented ? 'text-text-tertiary' : 'text-text-muted'}
+                  `}>
+                    {pathInfo.subtitle}
+                  </p>
+
+                  {/* 未实现标记 */}
+                  {!isImplemented && (
+                    <div className="absolute top-4 right-4">
+                      <span className="text-xs px-2 py-1 bg-gray-200 text-gray-500 rounded-full">
+                        即将推出
+                      </span>
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
           </motion.div>
         </div>
       </main>
